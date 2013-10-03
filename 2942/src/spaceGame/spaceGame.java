@@ -1,26 +1,9 @@
 package spaceGame;
 
 
-import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
-
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.border.Border;
 
 import jig.Collision;
 import jig.Entity;
@@ -88,7 +71,14 @@ public class spaceGame extends BasicGame {
 	private ArrayList<simpleEnemy> REnemies1;
 	private ArrayList<simpleEnemy> LEnemies1;
 	private simpleEnemy en1;
+	private shieldPowerUp shield;
+	private ArrayList<shieldPowerUp> sh1;
+	private ArrayList<shieldIcon> sIcons;
+	private shieldIcon sIcon;
+	private ArrayList<shipShield> pShields;
+	private shipShield pShield;
 	private int lives = 3;
+	private Random random;
 	public int score = 0;
 	private int gameTimer = 0;
 	
@@ -113,6 +103,9 @@ public class spaceGame extends BasicGame {
 		REnemies1 = new ArrayList<simpleEnemy>(10);
 		LEnemies1 = new ArrayList<simpleEnemy>(10);
 		explosions = new ArrayList<Bang>(10);
+		sh1 = new ArrayList<shieldPowerUp>(3);
+		sIcons = new ArrayList<shieldIcon>(3);
+		pShields = new ArrayList<shipShield>(2);
 	}
 
 	/**
@@ -127,6 +120,13 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/playerShip.png");
 		ResourceManager.loadImage("resource/lifeShip.png");
 		ResourceManager.loadImage("resource/space-1.jpg");
+		ResourceManager.loadImage("resource/explosion.png");
+		ResourceManager.loadImage("resource/laser.png");
+		ResourceManager.loadImage("resource/enemy1.png");
+		ResourceManager.loadImage("resource/shield1.png");
+		ResourceManager.loadImage("resource/shieldIcon.png");
+		ResourceManager.loadImage("resource/shieldIcon2.png");
+		
 		// the sound resource takes a particularly long time to load,
 		// we preload it here to (1) reduce latency when we first play it
 		// and (2) because loading it will load the audio libraries and
@@ -140,6 +140,10 @@ public class spaceGame extends BasicGame {
 		showLives.add(life1);
 		life1 = new lifeShip(130, 90);
 		showLives.add(life1);
+		sIcon = new shieldIcon(170, 685);
+		sIcons.add(sIcon);
+		sIcon = new shieldIcon(185, 685);
+		sIcons.add(sIcon);
 		startUp(container);
 	}
 
@@ -188,7 +192,9 @@ public class spaceGame extends BasicGame {
 		switch (gameState) {
 		case PLAYING:
 			space.render(g);
-			playerShip.render(g);
+			if(playerShip.timeDead <= 0){
+				playerShip.render(g);
+			}
 			for(int i = 0; i < lives; i++){
 				life1 = showLives.get(i);
 				life1.render(g);
@@ -205,10 +211,23 @@ public class spaceGame extends BasicGame {
 				en1 = LEnemies1.get(i);
 				en1.render(g);
 			}
+			for(int i = 0; i < sh1.size(); i++){
+				shield = sh1.get(i);
+				shield.render(g);
+			}
+			for(int i = 0; i < playerShip.canShield; i++){
+				sIcon = sIcons.get(i);
+				sIcon.render(g);
+			}
+			for(int i = 0; i < pShields.size(); i++){
+				pShield = pShields.get(i);
+				pShield.render(g);
+			}
 			for(Bang b : explosions)
 				b.render(g);
 			g.drawString("Score: " + score, 10, 30);
 			g.drawString("Lives: ", 10, 50);
+			g.drawString("Shield Available: ", 10, 675);
 			break;
 		case START_UP:
 			space.render(g);
@@ -232,6 +251,25 @@ public class spaceGame extends BasicGame {
 		}
 	}
 
+	public boolean dropPowerUp(){
+		random = new Random();
+		float x = random.nextFloat();
+		System.out.println(x);
+		if(x <= 0.25)
+			return true;
+		else
+			return false;
+	}
+	
+	public void killShip(){
+		playerShip.isAlive = false;
+		lives -= 1;
+		playerShip.timeDead = 1000;
+		playerShip.setX(ScreenWidth / 2);
+		playerShip.setY(650);
+		playerShip.setVelocity(new Vector(0, 0));
+		playerShip.removeImage(ResourceManager.getImage("resource/playerShip.png"));
+	}
 	/**
 	 * Update the game state based on user input and events that transpire in
 	 * this frame.
@@ -261,7 +299,7 @@ public class spaceGame extends BasicGame {
 					gameState = PLAYING;
 				}
 			} else if(gameState == WIN){
-				ResourceManager.getSound("resource/Omens.wav").stop();
+				//ResourceManager.getSound("resource/Omens.wav").stop();
 				if(input.isKeyDown(Input.KEY_SPACE)){
 					startUp(container);
 					//ball.setVelocity(new Vector(0.1f, 0.2f));
@@ -273,41 +311,48 @@ public class spaceGame extends BasicGame {
 
 				container.exit();
 			} else {
-				if(input.isKeyDown(Input.KEY_A)){
-					playerShip.setVelocity(new Vector(-0.25f, 0f));
-				}
-				if(input.isKeyDown(Input.KEY_D)){
-					playerShip.setVelocity(new Vector(0.25f, 0f));
-				}
-				if (input.isKeyDown(Input.KEY_SPACE) && playerShip.canShoot == true) {
-					playerShip.shotDelay = 0;
-					playerShip.canShoot = false;
-					pShot = new laser(playerShip.getX(), playerShip.getY() - 20, 0f, -0.3f);
-					pShots.add(pShot);
-				}
-				if (input.isKeyDown(Input.KEY_W)) {
-					playerShip.setVelocity(new Vector(0f, -0.25f));
-				}
-				if (input.isKeyDown(Input.KEY_S)) {
-					playerShip.setVelocity(new Vector(0f, 0.25f));
-				}
-				if(input.isKeyDown(Input.KEY_A) && input.isKeyDown(Input.KEY_S)){
-					playerShip.setVelocity(new Vector(-0.25f, 0.25f));
-				}
-				if(input.isKeyDown(Input.KEY_A) && input.isKeyDown(Input.KEY_W)){
-					playerShip.setVelocity(new Vector(-0.25f, -0.25f));
-				}
-				if(input.isKeyDown(Input.KEY_D) && input.isKeyDown(Input.KEY_S)){
-					playerShip.setVelocity(new Vector(0.25f, 0.25f));
-				}
-				if(input.isKeyDown(Input.KEY_D) && input.isKeyDown(Input.KEY_W)){
-					playerShip.setVelocity(new Vector(0.25f, -0.25f));
-				}
-				if (!input.isKeyDown(Input.KEY_W) && !input.isKeyDown(Input.KEY_S)
+				if(playerShip.isAlive){
+					if(input.isKeyDown(Input.KEY_A)){
+						playerShip.setVelocity(new Vector(-0.25f, 0f));
+					}
+					if(input.isKeyDown(Input.KEY_D)){
+						playerShip.setVelocity(new Vector(0.25f, 0f));
+					}
+					if (input.isKeyDown(Input.KEY_SPACE) && playerShip.canShoot == true) {
+						playerShip.shotDelay = 0;
+						playerShip.canShoot = false;
+						pShot = new laser(playerShip.getX(), playerShip.getY() - 20, 0f, -0.3f);
+						pShots.add(pShot);
+					}
+					if (input.isKeyDown(Input.KEY_W)) {
+						playerShip.setVelocity(new Vector(0f, -0.25f));
+					}
+					if (input.isKeyDown(Input.KEY_S)) {
+						playerShip.setVelocity(new Vector(0f, 0.25f));
+					}
+					if(input.isKeyDown(Input.KEY_A) && input.isKeyDown(Input.KEY_S)){
+						playerShip.setVelocity(new Vector(-0.25f, 0.25f));
+					}
+					if(input.isKeyDown(Input.KEY_A) && input.isKeyDown(Input.KEY_W)){
+						playerShip.setVelocity(new Vector(-0.25f, -0.25f));
+					}
+					if(input.isKeyDown(Input.KEY_D) && input.isKeyDown(Input.KEY_S)){
+						playerShip.setVelocity(new Vector(0.25f, 0.25f));
+					}
+					if(input.isKeyDown(Input.KEY_D) && input.isKeyDown(Input.KEY_W)){
+						playerShip.setVelocity(new Vector(0.25f, -0.25f));
+					}
+					if (!input.isKeyDown(Input.KEY_W) && !input.isKeyDown(Input.KEY_S)
 						&& !input.isKeyDown(Input.KEY_A) && !input.isKeyDown(Input.KEY_D)) {
-					playerShip.setVelocity(new Vector(0f, 0));
+						playerShip.setVelocity(new Vector(0f, 0));
+					}
+					if(input.isKeyDown(Input.KEY_RSHIFT) && playerShip.canShield > 0){
+						pShield = new shipShield(playerShip.getX(), playerShip.getY(), 0, 0);
+						pShields.add(pShield);
+						playerShip.shieldOn = true;
+						playerShip.canShield -= 1;
+					}
 				}
-
 				if(playerShip.getCoarseGrainedMaxX() > ScreenWidth){
 					playerShip.setVelocity(new Vector(-0.05f, 0f));
 				}
@@ -321,6 +366,98 @@ public class spaceGame extends BasicGame {
 				playerShip.setVelocity(new Vector(0f, 0.5f));
 				}
 			
+				for(int i = 0; i < sh1.size(); i ++){
+					shield = sh1.get(i);
+					if(playerShip.collides(shield) != null){
+						Collision collision = playerShip.collides(shield);
+						Vector collVector = collision.getMinPenetration();
+						if(collVector.getX() != 0){
+							if(playerShip.canShield <= 1)
+								playerShip.canShield += 1;
+							sh1.remove(i);
+						}
+						if(collVector.getY() != 0){
+							if(playerShip.canShield <= 1)
+								playerShip.canShield += 1;
+							sh1.remove(i);
+						}
+					}
+				}
+				if(!playerShip.shieldOn){
+					for(int i = 0; i < LEnemies1.size(); i++){
+						en1 = LEnemies1.get(i);
+						if(playerShip.collides(en1) != null){
+							Collision collision = playerShip.collides(en1);
+							Vector collVector = collision.getMinPenetration();
+							if(collVector.getX() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+								LEnemies1.remove(i);
+								killShip();
+							}
+							if(collVector.getY() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+								LEnemies1.remove(i);
+								killShip();
+							}
+						}
+					}
+					for(int i = 0; i < REnemies1.size(); i++){
+						en1 = REnemies1.get(i);
+						if(playerShip.collides(en1) != null){
+							Collision collision = playerShip.collides(en1);
+							Vector collVector = collision.getMinPenetration();
+							if(collVector.getX() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+								REnemies1.remove(i);
+								killShip();
+							}
+							if(collVector.getY() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+								REnemies1.remove(i);
+								killShip();
+							}
+						}
+					}
+				}
+				else{
+					for(int j = 0; j < pShields.size(); j++){
+						pShield = pShields.get(j);
+						for(int i = 0; i < LEnemies1.size(); i++){
+							en1 = LEnemies1.get(i);
+							if(pShield.collides(en1) != null){
+								Collision collision = pShield.collides(en1);
+								Vector collVector = collision.getMinPenetration();
+								if(collVector.getX() != 0){
+									explosions.add(new Bang(en1.getX(), en1.getY()));
+									LEnemies1.remove(i);
+								}
+								if(collVector.getY() != 0){
+									explosions.add(new Bang(en1.getX(), en1.getY()));
+									LEnemies1.remove(i);
+								}
+							}
+						}
+						for(int i = 0; i < REnemies1.size(); i++){
+							en1 = REnemies1.get(i);
+							if(playerShip.collides(en1) != null){
+								Collision collision = playerShip.collides(en1);
+								Vector collVector = collision.getMinPenetration();
+								if(collVector.getX() != 0){
+									explosions.add(new Bang(en1.getX(), en1.getY()));
+									REnemies1.remove(i);
+								}
+								if(collVector.getY() != 0){
+									explosions.add(new Bang(en1.getX(), en1.getY()));
+									REnemies1.remove(i);
+								}
+							}
+						}
+					}
+				}
 				for(int i = 0; i < pShots.size(); i++){
 					pShot = pShots.get(i);
 					for(int j = 0; j < REnemies1.size(); j++){
@@ -329,11 +466,19 @@ public class spaceGame extends BasicGame {
 							Collision collision = pShot.collides(en1);
 							Vector collVector = collision.getMinPenetration();
 							if(collVector.getX() != 0){
+								if(dropPowerUp()){
+									shield = new shieldPowerUp(en1.getX(), en1.getY(), 0f, 0.2f);
+									sh1.add(shield);
+								}
 								explosions.add(new Bang(en1.getX(), en1.getY()));
 								REnemies1.remove(j);
 								pShots.remove(i);
 							}
 							if(collVector.getY() != 0){
+								if(dropPowerUp()){
+									shield = new shieldPowerUp(en1.getX(), en1.getY(), 0f, 0.2f);
+									sh1.add(shield);
+							}
 								explosions.add(new Bang(en1.getX(), en1.getY()));
 								REnemies1.remove(j);
 								pShots.remove(i);
@@ -350,11 +495,19 @@ public class spaceGame extends BasicGame {
 							Collision collision = pShot.collides(en1);
 							Vector collVector = collision.getMinPenetration();
 							if(collVector.getX() != 0){
+								if(dropPowerUp()){
+									shield = new shieldPowerUp(en1.getX(), en1.getY(), 0f, 0.2f);
+									sh1.add(shield);
+								}
 								explosions.add(new Bang(en1.getX(), en1.getY()));
 								LEnemies1.remove(j);
 								pShots.remove(i);
 							}
 							if(collVector.getY() != 0){
+								if(dropPowerUp()){
+									shield = new shieldPowerUp(en1.getX(), en1.getY(), 0f, 0.2f);
+									sh1.add(shield);
+								}
 								explosions.add(new Bang(en1.getX(), en1.getY()));
 								LEnemies1.remove(j);
 								pShots.remove(i);
@@ -362,38 +515,8 @@ public class spaceGame extends BasicGame {
 							score += 10;
 						}
 					}
-				}
-			/*
-			for(int i = 0; i < hardBricks.size(); i++){
-				hardBrick = hardBricks.get(i);
-				if(ball.collides(hardBrick) != null){
-					Collision collision2 = ball.collides(hardBrick);
-					Vector collVector2 = collision2.getMinPenetration();
-					if(collVector2.getX() != 0){
-						ball.bounce(90);
-						bounced = true;
-						hardBrick.hits += 1;
-						ball.sideHit = 5;
-					}
-					if(collVector2.getY() != 0){
-						ball.bounce(0);
-						bounced = true;
-						hardBrick.hits += 1;
-						ball.sideHit = 5;
-					}
-					if(hardBrick.hits >= 2){
-						hardBricks.remove(i);
-						score += 20;
-					}
-				}
-			}
+				} 
 
-			ball.update(delta);
-			paddle.update(delta);
-			if(bricks.size() == 0 && hardBricks.size() == 0 && gameState == PLAYING){
-				level += 1;
-				setLevel();
-			}*/
 			if(gameTimer % 75 == 0 && gameTimer <= 225){
 				en1 = new simpleEnemy(4 * ScreenWidth / 5, 0, -0.05f, 0.1f);
 				REnemies1.add(en1);
@@ -406,6 +529,19 @@ public class spaceGame extends BasicGame {
 			for(int i = 0; i < pShots.size(); i++){
 				pShot = pShots.get(i);
 				pShot.update(delta);
+			}
+			for(int i = 0; i < sh1.size(); i++){
+				shield = sh1.get(i);
+				shield.update(delta);
+			}
+			for(int i = 0; i < pShields.size(); i++){
+				pShield = pShields.get(i);
+				pShield.setVelocity(playerShip.getVelocity());
+				pShield.update(delta);
+				if(pShield.timeOn >= 2000){
+					pShields.remove(i);
+					playerShip.shieldOn = false;
+				}
 			}
 			for(int i = 0; i < REnemies1.size(); i++){
 				en1 = REnemies1.get(i);
@@ -470,6 +606,10 @@ public class spaceGame extends BasicGame {
 		private Vector velocity;
 		public int shotDelay;
 		public boolean canShoot;
+		public int canShield;
+		public boolean shieldOn;
+		public boolean isAlive;
+		public int timeDead;
 
 		public spaceShip(final float x, final float y, final float vx, final float vy) {
 			super(x, y);
@@ -478,6 +618,10 @@ public class spaceGame extends BasicGame {
 			velocity = new Vector(vx, vy);
 			shotDelay = 0;
 			canShoot = true;
+			canShield = 0;
+			isAlive = true;
+			timeDead = -1;
+			shieldOn = false;
 		}
 
 		public void setVelocity(final Vector v) {
@@ -493,6 +637,11 @@ public class spaceGame extends BasicGame {
 			shotDelay += delta;
 			if(shotDelay >= 500)
 				canShoot = true;
+			if(timeDead > 0)
+				timeDead -= delta;
+			else
+				playerShip.isAlive = true;
+				playerShip.addImageWithBoundingBox(ResourceManager.getImage("resource/playerShip.png"));
 		}
 	}
 	
@@ -568,6 +717,47 @@ public class spaceGame extends BasicGame {
 		
 		public void update(final int delta) {
 			translate(speed.scale(delta));
+		}
+	}
+	
+	class shieldPowerUp extends Entity{
+		private Vector speed;
+		public shieldPowerUp(final float x, final float y, final float vx, final float vy){
+			super(x,y);
+			addImageWithBoundingBox(ResourceManager.getImage("resource/shieldIcon.png"));
+			speed = new Vector(vx, vy);
+		}
+		
+		public void update(final int delta){
+			translate(speed.scale(delta));
+		}
+	}
+	
+	class shieldIcon extends Entity{
+		public shieldIcon(final float x, final float y){
+			super(x,y);
+			addImage(ResourceManager.getImage("resource/shieldIcon2.png"));
+		}
+	}
+	
+	class shipShield extends Entity{
+		private Vector speed;
+		public int timeOn;
+		public shipShield(final float x, final float y, final float vx, final float vy){
+			super(x,y);
+			//shipShield.setCoarseGrainedCollisionBoundary(Entity.CIRCLE);
+			addImageWithBoundingBox(ResourceManager.getImage("resource/shield1.png"));
+			speed = new Vector(vx, vy);
+			timeOn = 0;
+		}
+		
+		public void setVelocity(final Vector v) {
+			speed = v;
+		}
+		
+		public void update(final int delta){
+			translate(speed.scale(delta));
+			timeOn += delta;
 		}
 	}
 	/**
