@@ -83,6 +83,8 @@ public class spaceGame extends BasicGame {
 	private spaceShip playerShip;
 	private ArrayList<lifeShip> showLives;
 	private lifeShip life1;
+	private ArrayList<laser> pShots;
+	private laser pShot;
 	private int lives = 3;
 	public int score = 0;
 	
@@ -103,6 +105,7 @@ public class spaceGame extends BasicGame {
 
 		Entity.setCoarseGrainedCollisionBoundary(Entity.AABB);
 		showLives = new ArrayList<lifeShip>(3);
+		pShots = new ArrayList<laser>(10);
 	}
 
 	/**
@@ -183,6 +186,10 @@ public class spaceGame extends BasicGame {
 				life1 = showLives.get(i);
 				life1.render(g);
 			}
+			for(int i = 0; i < pShots.size(); i++){
+				pShot = pShots.get(i);
+				pShot.render(g);
+			}
 			g.drawString("Score: " + score, 10, 30);
 			g.drawString("Lives: ", 10, 50);
 			break;
@@ -228,7 +235,6 @@ public class spaceGame extends BasicGame {
 			Input input = container.getInput();
 
 			if (gameState == START_UP) {
-				System.out.println("Start Up");
 				if (input.isKeyDown(Input.KEY_SPACE)){
 					newGame(container);
 					//ResourceManager.getSound("resource/Omens.wav").play();
@@ -250,7 +256,6 @@ public class spaceGame extends BasicGame {
 
 				container.exit();
 			} else {
-				System.out.println("Playing");
 				if(input.isKeyDown(Input.KEY_A)){
 					playerShip.setVelocity(new Vector(-0.25f, 0f));
 				}
@@ -260,8 +265,10 @@ public class spaceGame extends BasicGame {
 				if(input.isKeyDown(Input.KEY_D)){
 					playerShip.setVelocity(new Vector(0.25f, 0f));
 				}
-				if (input.isKeyDown(Input.KEY_ENTER)) {
-					//ball.setVelocity(new Vector(0, 0));
+				if (input.isKeyDown(Input.KEY_SPACE) && playerShip.countdown <= 0) {
+					playerShip.countdown = 1000;
+					pShot = new laser(playerShip.getX(), playerShip.getY() - 20, 0f, -0.3f);
+					pShots.add(pShot);
 				}
 				if(input.isKeyDown(Input.KEY_P)){
 					pauseGame();
@@ -362,19 +369,23 @@ public class spaceGame extends BasicGame {
 				setLevel();
 			}*/
 			playerShip.update(delta);
-		}
-/*
-		// check if there are any finished explosions, if so remove them
-		for (Iterator<Bang> i = explosions.iterator(); i.hasNext();) {
-			if (!i.next().isActive()) {
-				i.remove();
+			for(int i = 0; i < pShots.size(); i++){
+				pShot = pShots.get(i);
+				pShot.update(delta);
 			}
 		}
 
-		if (gameState == PLAYING) {
+		// check if there are any finished explosions, if so remove them
+	/*	for (Iterator<Bang> i = explosions.iterator(); i.hasNext();) {
+			if (!i.next().isActive()) {
+				i.remove();
+			}
+		}*/
+
+		if (gameState == PLAYING && lives == 0) {
 			gameOver();
 		}
-		*/
+		
 	}
 
 	public static void main(String[] args) throws Exception{
@@ -411,24 +422,22 @@ public class spaceGame extends BasicGame {
 			addImageWithBoundingBox(ResourceManager
 					.getImage("resource/playerShip.png"));
 			velocity = new Vector(vx, vy);
-			countdown = 0;
+			countdown = 500;
 		}
 
 		public void setVelocity(final Vector v) {
 			velocity = v;
 		}
 
-		public Vector getVelocity() {
+		public Vector getVelocity() {//ball.setVelocity(new Vector(0, 0))
 			return velocity;
 		}
 
 		public void update(final int delta) {
 			translate(velocity.scale(delta));
+			System.out.println(countdown);
 			while(countdown >= 0){
-				countdown -= delta;
-				if(countdown <= 0){
-
-				}
+				countdown -= 1;
 			}
 		}
 	}
@@ -467,6 +476,19 @@ public class spaceGame extends BasicGame {
 		public lifeShip(final float x, final float y){
 			super(x,y);
 			addImage(ResourceManager.getImage("resource/lifeShip.png"));
+		}
+	}
+	
+	class laser extends Entity{
+		private Vector speed;
+		public laser(final float x, final float y, final float vx, final float vy){
+			super(x,y);
+			addImageWithBoundingBox(ResourceManager.getImage("resource/laser.png"));
+			speed = new Vector(vx, vy);
+		}
+		
+		public void update(final int delta) {
+			translate(speed.scale(delta));
 		}
 	}
 	/**
