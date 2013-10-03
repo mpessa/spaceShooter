@@ -85,8 +85,12 @@ public class spaceGame extends BasicGame {
 	private lifeShip life1;
 	private ArrayList<laser> pShots;
 	private laser pShot;
+	private ArrayList<simpleEnemy> REnemies1;
+	private ArrayList<simpleEnemy> LEnemies1;
+	private simpleEnemy en1;
 	private int lives = 3;
 	public int score = 0;
+	private int gameTimer = 0;
 	
 	/**
 	 * Create the BounceGame frame, saving the width and height for later use.
@@ -106,6 +110,9 @@ public class spaceGame extends BasicGame {
 		Entity.setCoarseGrainedCollisionBoundary(Entity.AABB);
 		showLives = new ArrayList<lifeShip>(3);
 		pShots = new ArrayList<laser>(10);
+		REnemies1 = new ArrayList<simpleEnemy>(10);
+		LEnemies1 = new ArrayList<simpleEnemy>(10);
+		explosions = new ArrayList<Bang>(10);
 	}
 
 	/**
@@ -190,6 +197,16 @@ public class spaceGame extends BasicGame {
 				pShot = pShots.get(i);
 				pShot.render(g);
 			}
+			for(int i = 0; i < REnemies1.size(); i++){
+				en1 = REnemies1.get(i);
+				en1.render(g);
+			}
+			for(int i = 0; i < LEnemies1.size(); i++){
+				en1 = LEnemies1.get(i);
+				en1.render(g);
+			}
+			for(Bang b : explosions)
+				b.render(g);
 			g.drawString("Score: " + score, 10, 30);
 			g.drawString("Lives: ", 10, 50);
 			break;
@@ -259,83 +276,94 @@ public class spaceGame extends BasicGame {
 				if(input.isKeyDown(Input.KEY_A)){
 					playerShip.setVelocity(new Vector(-0.25f, 0f));
 				}
-				if(!input.isKeyDown(Input.KEY_A) && !input.isKeyDown(Input.KEY_D)){
-					playerShip.setVelocity(new Vector(0f, 0f));
-				}
 				if(input.isKeyDown(Input.KEY_D)){
 					playerShip.setVelocity(new Vector(0.25f, 0f));
 				}
-				if (input.isKeyDown(Input.KEY_SPACE) && playerShip.countdown <= 0) {
-					playerShip.countdown = 1000;
+				if (input.isKeyDown(Input.KEY_SPACE) && playerShip.canShoot == true) {
+					playerShip.shotDelay = 0;
+					playerShip.canShoot = false;
 					pShot = new laser(playerShip.getX(), playerShip.getY() - 20, 0f, -0.3f);
 					pShots.add(pShot);
 				}
-				if(input.isKeyDown(Input.KEY_P)){
-					pauseGame();
-				}/*
+				if (input.isKeyDown(Input.KEY_W)) {
+					playerShip.setVelocity(new Vector(0f, -0.25f));
+				}
 				if (input.isKeyDown(Input.KEY_S)) {
-					ball.setVelocity(new Vector(0f, 0.25f));
+					playerShip.setVelocity(new Vector(0f, 0.25f));
 				}
-				if (input.isKeyDown(Input.KEY_A)) {
-					ball.setVelocity(new Vector(-.25f, 0));
+				if(input.isKeyDown(Input.KEY_A) && input.isKeyDown(Input.KEY_S)){
+					playerShip.setVelocity(new Vector(-0.25f, 0.25f));
 				}
-				if (input.isKeyDown(Input.KEY_D)) {
-					ball.setVelocity(new Vector(0.25f, 0));
-				}*/
-			}
-			// bounce the ball...
+				if(input.isKeyDown(Input.KEY_A) && input.isKeyDown(Input.KEY_W)){
+					playerShip.setVelocity(new Vector(-0.25f, -0.25f));
+				}
+				if(input.isKeyDown(Input.KEY_D) && input.isKeyDown(Input.KEY_S)){
+					playerShip.setVelocity(new Vector(0.25f, 0.25f));
+				}
+				if(input.isKeyDown(Input.KEY_D) && input.isKeyDown(Input.KEY_W)){
+					playerShip.setVelocity(new Vector(0.25f, -0.25f));
+				}
+				if (!input.isKeyDown(Input.KEY_W) && !input.isKeyDown(Input.KEY_S)
+						&& !input.isKeyDown(Input.KEY_A) && !input.isKeyDown(Input.KEY_D)) {
+					playerShip.setVelocity(new Vector(0f, 0));
+				}
 
-			if(playerShip.getCoarseGrainedMaxX() > ScreenWidth){
-				playerShip.setVelocity(new Vector(-0.05f, 0f));
-			}
-			if(playerShip.getCoarseGrainedMinX() < 0){
-				playerShip.setVelocity(new Vector(0.05f, 0f));
-			}/*
-			if(ball.canHit == true && ball.sideHit != 0){
-				if(ball.collides(paddle) != null){
-					ball.bounce(0);
-					bounces++;
-					ball.sideHit = 0;
-					ResourceManager.getSound("resource/misc1.wav").play(); 
+				if(playerShip.getCoarseGrainedMaxX() > ScreenWidth){
+					playerShip.setVelocity(new Vector(-0.05f, 0f));
 				}
-				if(ball.collides(paddle) != null && ball.getX() >= paddle.getCoarseGrainedMaxX()){
-					ball.bounce(130);
-					ball.setVelocity(ball.velocity.add(new Vector(-0.1f, -0.1f)));
-					bounces++;
-					ball.sideHit = 0;
-					ResourceManager.getSound("resource/misc1.wav").play();
+				if(playerShip.getCoarseGrainedMinX() < 0){
+					playerShip.setVelocity(new Vector(0.05f, 0f));
 				}
-				if(ball.collides(paddle) != null && ball.getX() <= paddle.getCoarseGrainedMinX()){
-					ball.bounce(70);
-					ball.setVelocity(ball.velocity.add(new Vector(0.1f, -0.1f)));
-					bounces++;
-					ball.sideHit = 0;
-					ResourceManager.getSound("resource/misc1.wav").play();
+				if(playerShip.getCoarseGrainedMaxY() > ScreenHeight){
+					playerShip.setVelocity(new Vector(0f, -0.5f));
 				}
-			}
-			for(int i = 0; i < bricks.size(); i++){
-				brick = bricks.get(i);
-				if(ball.collides(brick) != null){
-					Collision collision = ball.collides(brick);
-					Vector collVector = collision.getMinPenetration();
-					if(collVector.getX() != 0){
-						ball.bounce(90);
-						bounced = true;
-						brick.hits += 1;
-						ball.sideHit = 5;
-					}
-					if(collVector.getY() != 0){
-						ball.bounce(0);
-						bounced = true;
-						brick.hits += 1;
-						ball.sideHit = 5;
+				if(playerShip.getCoarseGrainedMinY() <= ScreenHeight / 2){
+				playerShip.setVelocity(new Vector(0f, 0.5f));
+				}
+			
+				for(int i = 0; i < pShots.size(); i++){
+					pShot = pShots.get(i);
+					for(int j = 0; j < REnemies1.size(); j++){
+						en1 = REnemies1.get(j);
+						if(pShot.collides(en1) != null){
+							Collision collision = pShot.collides(en1);
+							Vector collVector = collision.getMinPenetration();
+							if(collVector.getX() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								REnemies1.remove(j);
+								pShots.remove(i);
+							}
+							if(collVector.getY() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								REnemies1.remove(j);
+								pShots.remove(i);
+							}
+							score += 10;
+						}
 					}
 				}
-				if(brick.hits >= 1){
-					bricks.remove(i);
-					score += 10;
+				for(int i = 0; i < pShots.size(); i++){
+					pShot = pShots.get(i);
+					for(int j = 0; j < LEnemies1.size(); j++){
+						en1 = LEnemies1.get(j);
+						if(pShot.collides(en1) != null){
+							Collision collision = pShot.collides(en1);
+							Vector collVector = collision.getMinPenetration();
+							if(collVector.getX() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								LEnemies1.remove(j);
+								pShots.remove(i);
+							}
+							if(collVector.getY() != 0){
+								explosions.add(new Bang(en1.getX(), en1.getY()));
+								LEnemies1.remove(j);
+								pShots.remove(i);
+							}
+							score += 10;
+						}
+					}
 				}
-			}
+			/*
 			for(int i = 0; i < hardBricks.size(); i++){
 				hardBrick = hardBricks.get(i);
 				if(ball.collides(hardBrick) != null){
@@ -359,33 +387,58 @@ public class spaceGame extends BasicGame {
 					}
 				}
 			}
-			if (bounced) {
-				explosions.add(new Bang(ball.getX(), ball.getY()));
-			}
+
 			ball.update(delta);
 			paddle.update(delta);
 			if(bricks.size() == 0 && hardBricks.size() == 0 && gameState == PLAYING){
 				level += 1;
 				setLevel();
 			}*/
+			if(gameTimer % 75 == 0 && gameTimer <= 225){
+				en1 = new simpleEnemy(4 * ScreenWidth / 5, 0, -0.05f, 0.1f);
+				REnemies1.add(en1);
+			}
+			if(gameTimer % 75 == 0 && (gameTimer >= 225 && gameTimer <= 450)){
+				en1 = new simpleEnemy(ScreenWidth / 5, 0, 0.05f, 0.1f);
+				LEnemies1.add(en1);
+			}
 			playerShip.update(delta);
 			for(int i = 0; i < pShots.size(); i++){
 				pShot = pShots.get(i);
 				pShot.update(delta);
 			}
+			for(int i = 0; i < REnemies1.size(); i++){
+				en1 = REnemies1.get(i);
+				if(en1.moveTimer >= 2500 && en1.canChangeV == true){
+					System.out.println("Change Vector");
+					en1.canChangeV = false;
+					en1.setVelocity(en1.velocity.add(new Vector(-0.15f, 0.1f)));
+				}
+				en1.update(delta);
+			}
+			for(int i = 0; i < LEnemies1.size(); i++){
+				en1 = LEnemies1.get(i);
+				if(en1.moveTimer >= 2500 && en1.canChangeV == true){
+					en1.canChangeV = false;
+					en1.setVelocity(en1.velocity.add(new Vector(0.15f, 0.1f)));
+				}
+				en1.update(delta);
+			}
+			gameTimer += 1;
+			System.out.println(gameTimer);
 		}
 
 		// check if there are any finished explosions, if so remove them
-	/*	for (Iterator<Bang> i = explosions.iterator(); i.hasNext();) {
+		for (Iterator<Bang> i = explosions.iterator(); i.hasNext();) {
 			if (!i.next().isActive()) {
 				i.remove();
 			}
-		}*/
+		}
 
 		if (gameState == PLAYING && lives == 0) {
 			gameOver();
 		}
-		
+		}
 	}
 
 	public static void main(String[] args) throws Exception{
@@ -394,7 +447,7 @@ public class spaceGame extends BasicGame {
 		//db_conn = DriverManager.getConnection("jdbc:sqlite:Scores.db");
 		//stmt = db_conn.createStatement();
 		try {
-			app = new AppGameContainer(new spaceGame("2942", 800, 600));
+			app = new AppGameContainer(new spaceGame("2942", 800, 700));
 			app.setDisplayMode(800, 700, false);
 			app.setVSync(true);
 			app.start();
@@ -415,30 +468,56 @@ public class spaceGame extends BasicGame {
 	class spaceShip extends Entity {
 
 		private Vector velocity;
-		public int countdown;
+		public int shotDelay;
+		public boolean canShoot;
 
 		public spaceShip(final float x, final float y, final float vx, final float vy) {
 			super(x, y);
 			addImageWithBoundingBox(ResourceManager
 					.getImage("resource/playerShip.png"));
 			velocity = new Vector(vx, vy);
-			countdown = 500;
+			shotDelay = 0;
+			canShoot = true;
 		}
 
 		public void setVelocity(final Vector v) {
 			velocity = v;
 		}
 
-		public Vector getVelocity() {//ball.setVelocity(new Vector(0, 0))
+		public Vector getVelocity() {
 			return velocity;
 		}
 
 		public void update(final int delta) {
 			translate(velocity.scale(delta));
-			System.out.println(countdown);
-			while(countdown >= 0){
-				countdown -= 1;
-			}
+			shotDelay += delta;
+			if(shotDelay >= 500)
+				canShoot = true;
+		}
+	}
+	
+	class simpleEnemy extends Entity{
+		private Vector velocity;
+		public int moveTimer;
+		private boolean canChangeV;
+		public simpleEnemy(final float x, final float y, final float vx, final float vy){
+			super(x,y);
+			addImageWithBoundingBox(ResourceManager.getImage("resource/enemy1.png"));
+			velocity = new Vector(vx, vy);
+			moveTimer = 1;
+			canChangeV = true;
+		}
+		
+		public Vector getVelocity(){
+			return velocity;
+		}
+		
+		public void setVelocity(final Vector v){
+			velocity = v;
+		}
+		public void update(final int delta) {
+			translate(velocity.scale(delta));
+			moveTimer += delta;
 		}
 	}
 
@@ -457,7 +536,7 @@ public class spaceGame extends BasicGame {
 					true);
 			addAnimation(explosion);
 			explosion.setLooping(false);
-			ResourceManager.getSound("resource/explosion.wav").play();
+			//ResourceManager.getSound("resource/explosion.wav").play();
 		}
 
 		public boolean isActive() {
