@@ -79,7 +79,15 @@ public class spaceGame extends BasicGame {
 	private static int gameState; 
 	private int gameOverTimer;
 	private ArrayList<Bang> explosions;
-
+	private Background space;
+	private spaceShip playerShip;
+	private ArrayList<lifeShip> showLives;
+	private lifeShip life1;
+	private ArrayList<laser> pShots;
+	private laser pShot;
+	private int lives = 3;
+	public int score = 0;
+	
 	/**
 	 * Create the BounceGame frame, saving the width and height for later use.
 	 * 
@@ -96,6 +104,8 @@ public class spaceGame extends BasicGame {
 		ScreenWidth = width;
 
 		Entity.setCoarseGrainedCollisionBoundary(Entity.AABB);
+		showLives = new ArrayList<lifeShip>(3);
+		pShots = new ArrayList<laser>(10);
 	}
 
 	/**
@@ -107,12 +117,22 @@ public class spaceGame extends BasicGame {
 	@Override
 	public void init(GameContainer container) throws SlickException {
 		
+		ResourceManager.loadImage("resource/playerShip.png");
+		ResourceManager.loadImage("resource/lifeShip.png");
+		ResourceManager.loadImage("resource/space-1.jpg");
 		// the sound resource takes a particularly long time to load,
 		// we preload it here to (1) reduce latency when we first play it
 		// and (2) because loading it will load the audio libraries and
 		// unless that is done now, we can't *disable* sound as we
 		// attempt to do in the startUp() method.
-
+		space = new Background(ScreenWidth / 2, ScreenHeight / 2);
+		playerShip = new spaceShip(ScreenWidth / 2, 650, 0, 0);
+		life1 = new lifeShip(30, 90);
+		showLives.add(life1);
+		life1 = new lifeShip(80, 90);
+		showLives.add(life1);
+		life1 = new lifeShip(130, 90);
+		showLives.add(life1);
 		startUp(container);
 	}
 
@@ -160,10 +180,28 @@ public class spaceGame extends BasicGame {
 			throws SlickException {
 		switch (gameState) {
 		case PLAYING:
-
+			space.render(g);
+			playerShip.render(g);
+			for(int i = 0; i < lives; i++){
+				life1 = showLives.get(i);
+				life1.render(g);
+			}
+			for(int i = 0; i < pShots.size(); i++){
+				pShot = pShots.get(i);
+				pShot.render(g);
+			}
+			g.drawString("Score: " + score, 10, 30);
+			g.drawString("Lives: ", 10, 50);
 			break;
 		case START_UP:
-
+			space.render(g);
+			playerShip.render(g);
+			for(int i = 0; i < lives; i++){
+				life1 = showLives.get(i);
+				life1.render(g);
+			}
+			g.drawString("Score: ?", 10, 30);
+			g.drawString("Lives: ", 10, 50);
 			break;
 		case GAME_OVER:
 
@@ -219,16 +257,18 @@ public class spaceGame extends BasicGame {
 				container.exit();
 			} else {
 				if(input.isKeyDown(Input.KEY_A)){
-					//paddle.setVelocity(new Vector(-0.75f, 0f));
+					playerShip.setVelocity(new Vector(-0.25f, 0f));
 				}
 				if(!input.isKeyDown(Input.KEY_A) && !input.isKeyDown(Input.KEY_D)){
-					//paddle.setVelocity(new Vector(0f, 0f));
+					playerShip.setVelocity(new Vector(0f, 0f));
 				}
 				if(input.isKeyDown(Input.KEY_D)){
-					//paddle.setVelocity(new Vector(0.75f, 0f));
+					playerShip.setVelocity(new Vector(0.25f, 0f));
 				}
-				if (input.isKeyDown(Input.KEY_ENTER)) {
-					//ball.setVelocity(new Vector(0, 0));
+				if (input.isKeyDown(Input.KEY_SPACE) && playerShip.countdown <= 0) {
+					playerShip.countdown = 1000;
+					pShot = new laser(playerShip.getX(), playerShip.getY() - 20, 0f, -0.3f);
+					pShots.add(pShot);
 				}
 				if(input.isKeyDown(Input.KEY_P)){
 					pauseGame();
@@ -244,13 +284,13 @@ public class spaceGame extends BasicGame {
 				}*/
 			}
 			// bounce the ball...
-/*
-			if(paddle.getCoarseGrainedMaxX() > ScreenWidth){
-				paddle.setVelocity(new Vector(-0.05f, 0f));
+
+			if(playerShip.getCoarseGrainedMaxX() > ScreenWidth){
+				playerShip.setVelocity(new Vector(-0.05f, 0f));
 			}
-			if(paddle.getCoarseGrainedMinX() < 0){
-				paddle.setVelocity(new Vector(0.05f, 0f));
-			}
+			if(playerShip.getCoarseGrainedMinX() < 0){
+				playerShip.setVelocity(new Vector(0.05f, 0f));
+			}/*
 			if(ball.canHit == true && ball.sideHit != 0){
 				if(ball.collides(paddle) != null){
 					ball.bounce(0);
@@ -328,19 +368,24 @@ public class spaceGame extends BasicGame {
 				level += 1;
 				setLevel();
 			}*/
-		}
-/*
-		// check if there are any finished explosions, if so remove them
-		for (Iterator<Bang> i = explosions.iterator(); i.hasNext();) {
-			if (!i.next().isActive()) {
-				i.remove();
+			playerShip.update(delta);
+			for(int i = 0; i < pShots.size(); i++){
+				pShot = pShots.get(i);
+				pShot.update(delta);
 			}
 		}
 
-		if (gameState == PLAYING) {
+		// check if there are any finished explosions, if so remove them
+	/*	for (Iterator<Bang> i = explosions.iterator(); i.hasNext();) {
+			if (!i.next().isActive()) {
+				i.remove();
+			}
+		}*/
+
+		if (gameState == PLAYING && lives == 0) {
 			gameOver();
 		}
-		*/
+		
 	}
 
 	public static void main(String[] args) throws Exception{
@@ -350,7 +395,7 @@ public class spaceGame extends BasicGame {
 		//stmt = db_conn.createStatement();
 		try {
 			app = new AppGameContainer(new spaceGame("2942", 800, 600));
-			app.setDisplayMode(800, 600, false);
+			app.setDisplayMode(800, 700, false);
 			app.setVSync(true);
 			app.start();
 		} catch (SlickException e) {
@@ -366,62 +411,33 @@ public class spaceGame extends BasicGame {
 	 * cracks for a nice visual effect.
 	 * 
 	 */
-	/*
-	class Ball extends Entity {
+	
+	class spaceShip extends Entity {
 
 		private Vector velocity;
-		public boolean canHit;
-		public int sideHit;
 		public int countdown;
 
-		public Ball(final float x, final float y, final float vx, final float vy) {
+		public spaceShip(final float x, final float y, final float vx, final float vy) {
 			super(x, y);
 			addImageWithBoundingBox(ResourceManager
-					.getImage("resource/yellow_2.png"));
+					.getImage("resource/playerShip.png"));
 			velocity = new Vector(vx, vy);
-			canHit = true;
-			sideHit = -1;
-			countdown = 0;
+			countdown = 500;
 		}
 
 		public void setVelocity(final Vector v) {
 			velocity = v;
 		}
 
-		public Vector getVelocity() {
+		public Vector getVelocity() {//ball.setVelocity(new Vector(0, 0))
 			return velocity;
 		}
 
-		/**
-		 * Bounce the ball off a surface. This simple implementation, combined
-		 * with the test used when calling this method can cause "issues" in
-		 * some situations. Can you see where/when? If so, it should be easy to
-		 * fix!
-		 * 
-		 * @param surfaceTangent
-		 
-		public void bounce(float surfaceTangent) {
-			ball.removeImage(ResourceManager.getImage("resource/yellow_2.png"));
-			ball.addImageWithBoundingBox(ResourceManager
-					.getImage("resource/red_eye.png"));
-			countdown = 500;
-			velocity = velocity.bounce(surfaceTangent);
-		}
-
-		/**
-		 * Update the Ball based on how much time has passed...
-		 * 
-		 * @param delta
-		 *            the number of milliseconds since the last update
-		 
 		public void update(final int delta) {
 			translate(velocity.scale(delta));
+			System.out.println(countdown);
 			while(countdown >= 0){
-				countdown -= delta;
-				if(countdown <= 0){
-					ball.removeImage(ResourceManager.getImage("resource/red_eye.png"));
-					ball.addImageWithBoundingBox(ResourceManager.getImage("resource/yellow_2.png"));
-				}
+				countdown -= 1;
 			}
 		}
 	}
@@ -449,6 +465,32 @@ public class spaceGame extends BasicGame {
 		}
 	}
 
+	class Background extends Entity{
+		public Background(final float x, final float y){
+			super(x,y);
+			addImage(ResourceManager.getImage("resource/space-1.jpg"));
+		}
+	}
+	
+	class lifeShip extends Entity{
+		public lifeShip(final float x, final float y){
+			super(x,y);
+			addImage(ResourceManager.getImage("resource/lifeShip.png"));
+		}
+	}
+	
+	class laser extends Entity{
+		private Vector speed;
+		public laser(final float x, final float y, final float vx, final float vy){
+			super(x,y);
+			addImageWithBoundingBox(ResourceManager.getImage("resource/laser.png"));
+			speed = new Vector(vx, vy);
+		}
+		
+		public void update(final int delta) {
+			translate(speed.scale(delta));
+		}
+	}
 	/**
 	 * Paddle class will hold all of the elements of the paddle. 
 	 
