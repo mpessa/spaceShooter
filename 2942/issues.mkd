@@ -1,7 +1,7 @@
 ## Resolved Issues ##
+[1] Need skeletal, executable game
 
 ## Open Issues ##
-[1] Need skeletal, executable game
 [2] Add player ship and lives
 [3] Add enemy ship
 [4] Add lasers and explosions
