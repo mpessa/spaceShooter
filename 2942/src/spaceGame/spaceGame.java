@@ -77,6 +77,10 @@ public class spaceGame extends BasicGame {
 	private shieldIcon sIcon;
 	private ArrayList<shipShield> pShields;
 	private shipShield pShield;
+	private ArrayList<boss1> bossQ;
+	private boss1 boss;
+	private ArrayList<enemyLaser> eShots;
+	private enemyLaser eShot;
 	private int lives = 3;
 	private Random random;
 	public int score = 0;
@@ -106,6 +110,8 @@ public class spaceGame extends BasicGame {
 		sh1 = new ArrayList<shieldPowerUp>(3);
 		sIcons = new ArrayList<shieldIcon>(3);
 		pShields = new ArrayList<shipShield>(2);
+		bossQ = new ArrayList<boss1>(1);
+		eShots = new ArrayList<enemyLaser>(10);
 	}
 
 	/**
@@ -223,6 +229,14 @@ public class spaceGame extends BasicGame {
 				pShield = pShields.get(i);
 				pShield.render(g);
 			}
+			for(int i = 0; i < bossQ.size(); i++){
+				boss = bossQ.get(i);
+				boss.render(g);
+			}
+			for(int i = 0; i < eShots.size(); i ++){
+				eShot = eShots.get(i);
+				eShot.render(g);
+			}
 			for(Bang b : explosions)
 				b.render(g);
 			g.drawString("Score: " + score, 10, 30);
@@ -264,11 +278,24 @@ public class spaceGame extends BasicGame {
 	public void killShip(){
 		playerShip.isAlive = false;
 		lives -= 1;
+		score -= 100;
 		playerShip.timeDead = 1000;
 		playerShip.setX(ScreenWidth / 2);
 		playerShip.setY(650);
 		playerShip.setVelocity(new Vector(0, 0));
 		playerShip.removeImage(ResourceManager.getImage("resource/playerShip.png"));
+	}
+	
+	public void killBoss(){
+		for(int i = 0; i < bossQ.size(); i ++){
+			boss = bossQ.get(i);
+			boss.setVelocity(new Vector(0f, 0f));
+			boss.canShoot = false;
+			explosions.add(new Bang(boss.getX(), boss.getY() + 100));
+			explosions.add(new Bang(boss.getX() - 100, boss.getY() + 100));
+			explosions.add(new Bang(boss.getX() + 100, boss.getY() + 100));
+			bossQ.remove(i);
+		}
 	}
 	/**
 	 * Update the game state based on user input and events that transpire in
@@ -383,7 +410,7 @@ public class spaceGame extends BasicGame {
 						}
 					}
 				}
-				if(!playerShip.shieldOn){
+				if(!playerShip.shieldOn && playerShip.isAlive){
 					for(int i = 0; i < LEnemies1.size(); i++){
 						en1 = LEnemies1.get(i);
 						if(playerShip.collides(en1) != null){
@@ -422,6 +449,23 @@ public class spaceGame extends BasicGame {
 							}
 						}
 					}
+					for(int i = 0; i < eShots.size(); i++){
+						eShot = eShots.get(i);
+						if(playerShip.collides(eShot) != null){
+							Collision collision = playerShip.collides(eShot);
+							Vector collVector = collision.getMinPenetration();
+							if(collVector.getX() != 0){
+								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+								eShots.remove(i);
+								killShip();
+							}
+							if(collVector.getY() != 0){
+								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+								eShots.remove(i);
+								killShip();
+							}
+						}
+					}
 				}
 				else{
 					for(int j = 0; j < pShields.size(); j++){
@@ -456,6 +500,19 @@ public class spaceGame extends BasicGame {
 								}
 							}
 						}
+						for(int i = 0; i < eShots.size(); i++){
+							eShot = eShots.get(i);
+							if(pShield.collides(eShot) != null){
+								Collision collision = pShield.collides(eShot);
+								Vector collVector = collision.getMinPenetration();
+								if(collVector.getX() != 0){
+									eShots.remove(i);
+								}
+								if(collVector.getY() != 0){
+									eShots.remove(i);
+								}
+							}
+						}
 					}
 				}
 				for(int i = 0; i < pShots.size(); i++){
@@ -486,9 +543,6 @@ public class spaceGame extends BasicGame {
 							score += 10;
 						}
 					}
-				}
-				for(int i = 0; i < pShots.size(); i++){
-					pShot = pShots.get(i);
 					for(int j = 0; j < LEnemies1.size(); j++){
 						en1 = LEnemies1.get(j);
 						if(pShot.collides(en1) != null){
@@ -515,25 +569,102 @@ public class spaceGame extends BasicGame {
 							score += 10;
 						}
 					}
-				} 
+					for(int j = 0; j < bossQ.size(); j++){
+						boss = bossQ.get(j);
+						if(pShot.collides(boss) != null){
+							Collision collision = pShot.collides(boss);
+							Vector collVector = collision.getMinPenetration();
+							if(collVector.getX() != 0){
+								pShots.remove(i);
+								boss.hits += 1;
+								if(boss.hits >= 15)
+									killBoss();
+							}
+							if(collVector.getY() != 0){
+								pShots.remove(i);
+								boss.hits += 1;
+								if(boss.hits >= 15)
+									killBoss();
+							}
+						}
+					}
+				}
 
-			if(gameTimer % 75 == 0 && gameTimer <= 225){
+			//Remove shots off screen
+			for(int i = 0; i < pShots.size(); i++){
+				pShot = pShots.get(i);
+				if(pShot.getCoarseGrainedMaxY() <= 0)
+					pShots.remove(i);
+			}
+			for(int i = 0; i < eShots.size(); i++){
+				eShot = eShots.get(i);
+				if(eShot.getCoarseGrainedMinY() >= ScreenHeight)
+					eShots.remove(i);
+			}
+			
+			//Add enemies
+			if((gameTimer % 75 == 0 && gameTimer <= 225) || (gameTimer % 75 == 0 && (gameTimer >= 525 && gameTimer <= 750))){
 				en1 = new simpleEnemy(4 * ScreenWidth / 5, 0, -0.05f, 0.1f);
 				REnemies1.add(en1);
 			}
-			if(gameTimer % 75 == 0 && (gameTimer >= 225 && gameTimer <= 450)){
+			
+			//Add enemies
+			if((gameTimer % 75 == 0 && (gameTimer >= 225 && gameTimer <= 450)) || (gameTimer % 75 == 0 && (gameTimer >= 825 && gameTimer <= 1050))){
 				en1 = new simpleEnemy(ScreenWidth / 5, 0, 0.05f, 0.1f);
 				LEnemies1.add(en1);
 			}
+			
+			//Add boss to screen
+			if(gameTimer == 1300){
+				boss = new boss1(ScreenWidth / 2, 50, 0.1f, 0);
+				bossQ.add(boss);
+			}
+			
+			//Add shots from boss
+			for(int i = 0; i < bossQ.size(); i++){
+				boss = bossQ.get(i);
+				if(boss.canShoot){
+					boss.shotDelay = 0;
+					boss.canShoot = false;
+					eShot = new enemyLaser(boss.getX() - 53, boss.getY() + 85, 0f, 0.3f);
+					eShots.add(eShot);
+					eShot = new enemyLaser(boss.getX() + 53, boss.getY() + 85, 0f, 0.3f);
+					eShots.add(eShot);
+				}
+			}
+			
+			//Update boss
+			for(int i = 0; i < bossQ.size(); i++){
+				boss = bossQ.get(i);
+				if(boss.getCoarseGrainedMaxX() > ScreenWidth){
+					boss.setVelocity(new Vector(-0.1f, 0f));
+				}
+				if(boss.getCoarseGrainedMinX() < 0){
+					boss.setVelocity(new Vector(0.1f, 0f));
+				}
+				boss.update(delta);
+			}
+			//Update where enemy lasers are
+			for(int i = 0; i < eShots.size(); i++){
+				eShot = eShots.get(i);
+				eShot.update(delta);
+			}
+			//Update the player movement
 			playerShip.update(delta);
+			
+			//Update where player lasers are
 			for(int i = 0; i < pShots.size(); i++){
 				pShot = pShots.get(i);
 				pShot.update(delta);
 			}
+			
+			//Update where the shield powerup is on the screen
 			for(int i = 0; i < sh1.size(); i++){
 				shield = sh1.get(i);
 				shield.update(delta);
 			}
+			
+			//Ship shield - make it move with the ship and turn it off
 			for(int i = 0; i < pShields.size(); i++){
 				pShield = pShields.get(i);
 				pShield.setVelocity(playerShip.getVelocity());
@@ -543,6 +674,8 @@ public class spaceGame extends BasicGame {
 					playerShip.shieldOn = false;
 				}
 			}
+			
+			//Update enemy ship movements
 			for(int i = 0; i < REnemies1.size(); i++){
 				en1 = REnemies1.get(i);
 				if(en1.moveTimer >= 2500 && en1.canChangeV == true){
@@ -560,8 +693,9 @@ public class spaceGame extends BasicGame {
 				}
 				en1.update(delta);
 			}
+			//Increment game timer 
 			gameTimer += 1;
-			System.out.println(gameTimer);
+			//System.out.println(gameTimer);
 		}
 
 		// check if there are any finished explosions, if so remove them
@@ -637,7 +771,7 @@ public class spaceGame extends BasicGame {
 			shotDelay += delta;
 			if(shotDelay >= 500)
 				canShoot = true;
-			if(timeDead > 0)
+			if(timeDead > 0 && !playerShip.isAlive)
 				timeDead -= delta;
 			else
 				playerShip.isAlive = true;
@@ -720,6 +854,19 @@ public class spaceGame extends BasicGame {
 		}
 	}
 	
+	class enemyLaser extends Entity{
+		private Vector speed;
+		public enemyLaser(final float x, final float y, final float vx, final float vy){
+			super(x,y);
+			addImageWithBoundingBox(ResourceManager.getImage("resource/enemyLaser.png"));
+			speed = new Vector(vx, vy);
+		}
+		
+		public void update(final int delta){
+			translate(speed.scale(delta));
+		}
+	}
+	
 	class shieldPowerUp extends Entity{
 		private Vector speed;
 		public shieldPowerUp(final float x, final float y, final float vx, final float vy){
@@ -758,6 +905,32 @@ public class spaceGame extends BasicGame {
 		public void update(final int delta){
 			translate(speed.scale(delta));
 			timeOn += delta;
+		}
+	}
+	
+	class boss1 extends Entity{
+		private Vector speed;
+		public int shotDelay;
+		public boolean canShoot;
+		public int hits;
+		public boss1(final float x, final float y, final float vx, final float vy){
+			super(x,y);
+			addImageWithBoundingBox(ResourceManager.getImage("resource/boss1.png"));
+			speed = new Vector(vx, vy);
+			shotDelay = 0;
+			canShoot = true;
+			hits = 0;
+		}
+		
+		public void setVelocity(final Vector v){
+			speed = v;
+		}
+		
+		public void update(final int delta){
+			translate(speed.scale(delta));
+			shotDelay += delta;
+			if(shotDelay >= 500)
+				canShoot = true;				
 		}
 	}
 	/**
