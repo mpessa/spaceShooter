@@ -6,7 +6,8 @@
 [5] Add powerup and effects
 [6] Add boss
 [7] Add additional enemy ships
+[8] Create levels with transitions
 
 ## Open Issues ##
 
-[8] Create levels with transitions
+[9] Create additional levels and enemies
