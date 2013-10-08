@@ -1,6 +1,4 @@
 ## Resolved Issues ##
-
-## Open Issues ##
 [1] Need skeletal, executable game
 [2] Add player ship and lives
 [3] Add enemy ship
@@ -9,3 +7,7 @@
 [6] Add boss
 [7] Add additional enemy ships
 [8] Create levels with transitions
+
+## Open Issues ##
+
+[9] Create additional levels and enemies
