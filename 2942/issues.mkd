@@ -11,3 +11,4 @@
 ## Open Issues ##
 
 [9] Create additional levels and enemies
+[10] Reduce collision code
