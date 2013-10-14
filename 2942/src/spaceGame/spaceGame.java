@@ -50,8 +50,8 @@ public class spaceGame extends BasicGame {
 	private laser pShot;
 	private ArrayList<simpleEnemy> Enemies1;
 	private simpleEnemy en1;
-	private shieldPowerUp shield;
-	private ArrayList<shieldPowerUp> sh1;
+	private PowerUp power;
+	private ArrayList<PowerUp> pws;
 	private ArrayList<shieldIcon> sIcons;
 	private shieldIcon sIcon;
 	private ArrayList<shipShield> pShields;
@@ -59,12 +59,6 @@ public class spaceGame extends BasicGame {
 	private boss1 boss;
 	private ArrayList<enemyLaser> eShots;
 	private enemyLaser eShot;
-	private ArrayList<rapidFire> rfs;
-	private rapidFire RF;
-	private ArrayList<threeWayPower> threeWay;
-	private threeWayPower threeP;
-	private ArrayList<extraLife> extras;
-	private extraLife extra;
 	private int lives = 3;
 	private Random random;
 	public int score = 0;
@@ -98,13 +92,10 @@ public class spaceGame extends BasicGame {
 		pShots = new ArrayList<laser>(20);
 		Enemies1 = new ArrayList<simpleEnemy>(10);
 		explosions = new ArrayList<Bang>(10);
-		sh1 = new ArrayList<shieldPowerUp>(5);
+		pws = new ArrayList<PowerUp>(5);
 		sIcons = new ArrayList<shieldIcon>(3);
 		pShields = new ArrayList<shipShield>(2);
 		eShots = new ArrayList<enemyLaser>(10);
-		rfs = new ArrayList<rapidFire>(5);
-		threeWay = new ArrayList<threeWayPower>(10);
-		extras = new ArrayList<extraLife>(10);
 	}
 
 	/**
@@ -222,9 +213,9 @@ public class spaceGame extends BasicGame {
 				pShot = pShots.get(i);
 				pShot.render(g);
 			}
-			for(int i = 0; i < sh1.size(); i++){
-				shield = sh1.get(i);
-				shield.render(g);
+			for(int i = 0; i < pws.size(); i++){
+				power = pws.get(i);
+				power.render(g);
 			}
 			for(int i = 0; i < playerShip.canShield; i++){
 				sIcon = sIcons.get(i);
@@ -233,18 +224,6 @@ public class spaceGame extends BasicGame {
 			for(int i = 0; i < pShields.size(); i++){
 				pShield = pShields.get(i);
 				pShield.render(g);
-			}
-			for(int i = 0; i < extras.size(); i++){
-				extra = extras.get(i);
-				extra.render(g);
-			}
-			for(int i = 0; i < rfs.size(); i++){
-				RF = rfs.get(i);
-				RF.render(g);
-			}
-			for(int i = 0; i < threeWay.size(); i++){
-				threeP = threeWay.get(i);
-				threeP.render(g);
 			}
 			if(boss.isAlive){
 				boss.render(g);
@@ -305,6 +284,7 @@ public class spaceGame extends BasicGame {
 	public boolean dropPowerUp(){
 		random = new Random();
 		float x = random.nextFloat();
+		System.out.println(x);
 		if(x <= 0.2)
 			return true;
 		else
@@ -456,74 +436,50 @@ public class spaceGame extends BasicGame {
 				}
 			
 				//timeStart1 = System.nanoTime();
-				for(int i = 0; i < sh1.size(); i ++){
-					shield = sh1.get(i);
-					if(playerShip.collides(shield) != null){
-						Collision collision = playerShip.collides(shield);
+				for(int i = 0; i < pws.size(); i ++){
+					power = pws.get(i);
+					if(playerShip.collides(power) != null){
+						Collision collision = playerShip.collides(power);
 						Vector collVector = collision.getMinPenetration();
 						if(collVector.getX() != 0){
-							if(playerShip.canShield <= 1)
+							if(playerShip.canShield <= 1 && power.type == 0){
 								playerShip.canShield += 1;
-							sh1.remove(i);
+								System.out.println("adding shield");
+							}
+							if(power.type == 1 && lives < 3){
+								lives += 1;
+								System.out.println("adding life");
+							}
+							if(power.type == 2){
+								playerShip.powerUpTimer = 0;
+								playerShip.powerUp = true;
+								System.out.println("rapid fire");
+							}
+							if(power.type == 3){
+								playerShip.threeWayTimer = 0;
+								playerShip.threeWay = true;
+								System.out.println("threeway");
+							}
+							pws.remove(i);
 						}
 						if(collVector.getY() != 0){
-							if(playerShip.canShield <= 1)
+							if(playerShip.canShield <= 1 && power.type == 0)
 								playerShip.canShield += 1;
-							sh1.remove(i);
-						}
-					}
-				}
-				for(int i = 0; i < extras.size(); i++){
-					extra = extras.get(i);
-					if(playerShip.collides(extra) != null){
-						Collision collision = playerShip.collides(extra);
-						Vector collVector = collision.getMinPenetration();
-						if(collVector.getX() != 0){
-							extras.remove(i);
-							if(lives < 3)
+							if(power.type == 1 && lives < 3)
 								lives += 1;
-						}
-						if(collVector.getY() != 0){
-							extras.remove(i);
-							if(lives < 3)
-								lives += 1;
-						}
-					}
-				}
-				for(int i = 0; i < rfs.size(); i++){
-					RF = rfs.get(i);
-					if(playerShip.collides(RF) != null){
-						Collision collision = playerShip.collides(RF);
-						Vector collVector = collision.getMinPenetration();
-						if(collVector.getX() != 0){
-							rfs.remove(i);
-							playerShip.powerUpTimer = 0;
-							playerShip.powerUp = true;
-						}
-						if(collVector.getY() != 0){
-							rfs.remove(i);
-							playerShip.powerUpTimer = 0;
-							playerShip.powerUp = true;
+							if(power.type == 2){
+								playerShip.powerUpTimer = 0;
+								playerShip.powerUp = true;
+							}
+							if(power.type == 3){
+								playerShip.threeWayTimer = 0;
+								playerShip.threeWay = true;
+							}
+							pws.remove(i);
 						}
 					}
 				}
-				for(int i = 0; i < threeWay.size(); i++){
-					threeP = threeWay.get(i);
-					if(playerShip.collides(threeP) != null){
-						Collision collision = playerShip.collides(threeP);
-						Vector collVector = collision.getMinPenetration();
-						if(collVector.getX() != 0){
-							threeWay.remove(i);
-							playerShip.threeWayTimer = 0;
-							playerShip.threeWay = true;
-						}
-						if(collVector.getY() != 0){
-							threeWay.remove(i);
-							playerShip.threeWayTimer = 0;
-							playerShip.threeWay = true;
-						}
-					}
-				}
+				
 				if(!playerShip.shieldOn && playerShip.isAlive){
 					for(int i = 0; i < Enemies1.size(); i++){
 						en1 = Enemies1.get(i);
@@ -608,34 +564,21 @@ public class spaceGame extends BasicGame {
 								en1.hits += 1;
 								System.out.println("Collision");
 								if(dropPowerUp()){
-									int power = selectPowerUp();
-									if(power == 2){
-										shield = new shieldPowerUp(en1.getX(), en1.getY(), 0f, 0.2f);
-										sh1.add(shield);
-									}
-									else if(power == 1){
-										threeP = new threeWayPower(en1.getX(), en1.getY(), 0f, 0.2f);
-										threeWay.add(threeP);
-									}
-									else if(power == 3){
-										extra = new extraLife(en1.getX(), en1.getY(), 0f, 0.2f);
-										extras.add(extra);
-									}
-									else{
-										RF = new rapidFire(en1.getX(), en1.getY(), 0f, 0.2f);
-										rfs.add(RF);
-									}
+									int powers = selectPowerUp();
+									power = new PowerUp(en1.getX(), en1.getY(), 0f, 0.2f, powers);
+									System.out.println("Power: " + powers);
+									pws.add(power);
 								}
 								pShots.remove(i);
 								if((en1.type == 1 || en1.type == 4) && en1.hits >= 1){
-									System.out.println("Type 1 destroyed");
+									//System.out.println("Type 1 destroyed");
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
 									score += 20;
 								}
 								if(en1.type == 0 && en1.hits >= 2){
-									System.out.println("Type 2 destroyed");
+									//System.out.println("Type 2 destroyed");
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
@@ -659,23 +602,9 @@ public class spaceGame extends BasicGame {
 								en1.hits += 1;
 								if(dropPowerUp()){
 									if(dropPowerUp()){
-										int power = selectPowerUp();
-										if(power == 2){
-											shield = new shieldPowerUp(en1.getX(), en1.getY(), 0f, 0.2f);
-											sh1.add(shield);
-										}
-										else if(power == 1){
-											threeP = new threeWayPower(en1.getX(), en1.getY(), 0f, 0.2f);
-											threeWay.add(threeP);
-										}
-										else if(power == 3){
-											extra = new extraLife(en1.getX(), en1.getY(), 0f, 0.2f);
-											extras.add(extra);
-										}
-										else{
-											RF = new rapidFire(en1.getX(), en1.getY(), 0f, 0.2f);
-											rfs.add(RF);
-										}
+										int powers = selectPowerUp();
+										power = new PowerUp(en1.getX(), en1.getY(), 0f, 0.2f, powers);
+										pws.add(power);
 									}
 								}
 								pShots.remove(i);
@@ -896,38 +825,14 @@ public class spaceGame extends BasicGame {
 				pShot.update(delta);
 			}
 			
-			//Update where the shield powerup is on the screen
-			for(int i = 0; i < sh1.size(); i++){
-				shield = sh1.get(i);
-				shield.update(delta);
-				if(shield.getCoarseGrainedMinY() >= ScreenHeight)
-					sh1.remove(i);
+			//Update where the powerup is on the screen
+			for(int i = 0; i < pws.size(); i++){
+				power = pws.get(i);
+				power.update(delta);
+				if(power.getCoarseGrainedMinY() >= ScreenHeight)
+					pws.remove(i);
 			}
-			
-			//Update extra lives
-			for(int i = 0; i < extras.size(); i++){
-				extra = extras.get(i);
-				extra.update(delta);
-				if(extra.getCoarseGrainedMinY() >= ScreenHeight)
-					extras.remove(i);
-			}
-			
-			//Update rapid fire powerup
-			for(int i = 0; i < rfs.size(); i++){
-				RF = rfs.get(i);
-				RF.update(delta);
-				if(RF.getCoarseGrainedMinY() >= ScreenHeight)
-					rfs.remove(i);
-			}
-			
-			//Update three way powerup
-			for(int i = 0; i < threeWay.size(); i++){
-				threeP = threeWay.get(i);
-				threeP.update(delta);
-				if(threeP.getCoarseGrainedMinY() >= ScreenHeight)
-					threeWay.remove(i);
-			}
-			
+
 			//Ship shield - make it move with the ship and turn it off
 			for(int i = 0; i < pShields.size(); i++){
 				pShield = pShields.get(i);
@@ -979,14 +884,9 @@ public class spaceGame extends BasicGame {
 				if(eShot.getCoarseGrainedMinY() >= ScreenHeight)
 					eShots.remove(i);
 			}
-			/*
-			System.out.println("Player shots: " + pShots.size());
-			System.out.println("Enemy shots: " + eShots.size());
-			System.out.println("Enemies: " + Enemies1.size());
-			*/
+
 			//Increment game timer 
 			gameTimer += 1;
-			//System.out.println(gameTimer);
 			if(playerShip.powerUp)
 				playerShip.powerUpTimer += 1;
 			if(playerShip.threeWay)
@@ -1303,11 +1203,20 @@ public class spaceGame extends BasicGame {
 		}
 	}
 	
-	class shieldPowerUp extends Entity{
+	class PowerUp extends Entity{
 		private Vector speed;
-		public shieldPowerUp(final float x, final float y, final float vx, final float vy){
+		public int type;
+		public PowerUp(final float x, final float y, final float vx, final float vy, final int flag){
 			super(x,y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/shieldIcon.png"));
+			type = flag;
+			if(type == 0)
+				addImageWithBoundingBox(ResourceManager.getImage("resource/shieldIcon.png"));
+			if(type == 1)
+				addImageWithBoundingBox(ResourceManager.getImage("resource/heart.png"));
+			if(type == 2)
+				addImageWithBoundingBox(ResourceManager.getImage("resource/Flameless.png"));
+			if(type == 3)
+				addImageWithBoundingBox(ResourceManager.getImage("resource/icon_110.png"));
 			speed = new Vector(vx, vy);
 		}
 		
@@ -1315,46 +1224,7 @@ public class spaceGame extends BasicGame {
 			translate(speed.scale(delta));
 		}
 	}
-	
-	class extraLife extends Entity{
-		private Vector speed;
-		public extraLife(final float x, final float y, final float vx, final float vy){
-			super(x,y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/heart.png"));
-			speed = new Vector(vx, vy);
-		}
-		
-		public void update(final int delta){
-			translate(speed.scale(delta));
-		}
-	}
-	
-	class rapidFire extends Entity{
-		private Vector speed;
-		public rapidFire(final float x, final float y, final float vx, final float vy){
-			super(x,y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/Flameless.png"));
-			speed = new Vector(vx, vy);
-		}
-		
-		public void update(final int delta){
-			translate(speed.scale(delta));
-		}
-	}
-	
-	class threeWayPower extends Entity{
-		private Vector speed;
-		public threeWayPower(final float x, final float y, final float vx, final float vy){
-			super(x,y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/icon_110.png"));
-			speed = new Vector(vx, vy);
-		}
-		
-		public void update(final int delta){
-			translate(speed.scale(delta));
-		}
-	}
-	
+
 	class shieldIcon extends Entity{
 		public shieldIcon(final float x, final float y){
 			super(x,y);
