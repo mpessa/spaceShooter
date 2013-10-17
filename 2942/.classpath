@@ -10,5 +10,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/jig"/>
+	<classpathentry kind="lib" path="/home/nuked/git/2942/2942/src/spaceGame/resource/sqlite-jdbc-3.7.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
