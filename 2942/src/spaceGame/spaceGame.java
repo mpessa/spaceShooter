@@ -19,7 +19,6 @@ import jig.Vector;
 import org.newdawn.slick.Animation;
 import org.newdawn.slick.AppGameContainer;
 import org.newdawn.slick.BasicGame;
-import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Input;
@@ -508,17 +507,17 @@ public class spaceGame extends BasicGame {
 					boss1.clear();
 					gameOver();
 				}
-				if(playerShip.getCoarseGrainedMaxX() > ScreenWidth){
-					playerShip.setVelocity(new Vector(-0.05f, 0f));
+				if(playerShip.getCoarseGrainedMaxX() > ScreenWidth && input.isKeyDown(Input.KEY_D)){
+					playerShip.setVelocity(new Vector(0f, 0f));
 				}
-				if(playerShip.getCoarseGrainedMinX() < 0){
-					playerShip.setVelocity(new Vector(0.05f, 0f));
+				if(playerShip.getCoarseGrainedMinX() < 0 && input.isKeyDown(Input.KEY_A)){
+					playerShip.setVelocity(new Vector(0f, 0f));
 				}
-				if(playerShip.getCoarseGrainedMaxY() > ScreenHeight){
-					playerShip.setVelocity(new Vector(0f, -0.5f));
+				if(playerShip.getCoarseGrainedMaxY() > ScreenHeight + 30 && input.isKeyDown(Input.KEY_S)){
+					playerShip.setVelocity(new Vector(0f, 0f));
 				}
-				if(playerShip.getCoarseGrainedMinY() <= ScreenHeight / 2){
-				playerShip.setVelocity(new Vector(0f, 0.5f));
+				if(playerShip.getCoarseGrainedMinY() <= ScreenHeight / 2 && input.isKeyDown(Input.KEY_W)){
+				playerShip.setVelocity(new Vector(0f, 0f));
 				}
 			
 				for(int i = 0; i < pws.size(); i ++){
@@ -526,29 +525,13 @@ public class spaceGame extends BasicGame {
 					if(playerShip.collides(power) != null){
 						Collision collision = playerShip.collides(power);
 						Vector collVector = collision.getMinPenetration();
-						if(collVector.getX() != 0){
+						if(collVector.getX() != 0 || collVector.getY() != 0){
 							if(playerShip.canShield <= 1 && power.type == 0){
 								playerShip.canShield += 1;
 							}
 							if(power.type == 1 && lives < 3){
 								lives += 1;
 							}
-							if(power.type == 2){
-								playerShip.powerUpTimer = 0;
-								playerShip.powerUp = true;
-							}
-							if(power.type == 3){
-								playerShip.threeWayTimer = 0;
-								playerShip.threeWay = true;
-							}
-							pws.remove(i);
-							score += 50;
-						}
-						if(collVector.getY() != 0){
-							if(playerShip.canShield <= 1 && power.type == 0)
-								playerShip.canShield += 1;
-							if(power.type == 1 && lives < 3)
-								lives += 1;
 							if(power.type == 2){
 								playerShip.powerUpTimer = 0;
 								playerShip.powerUp = true;
@@ -569,13 +552,7 @@ public class spaceGame extends BasicGame {
 						if(playerShip.collides(en1) != null){
 							Collision collision = playerShip.collides(en1);
 							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0){
-								explosions.add(new Bang(en1.getX(), en1.getY()));
-								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
-								Enemies1.remove(i);
-								killShip();
-							}
-							if(collVector.getY() != 0){
+							if(collVector.getX() != 0 || collVector.getY() != 0){
 								explosions.add(new Bang(en1.getX(), en1.getY()));
 								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
 								Enemies1.remove(i);
@@ -588,12 +565,7 @@ public class spaceGame extends BasicGame {
 						if(playerShip.collides(eShot) != null){
 							Collision collision = playerShip.collides(eShot);
 							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0){
-								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
-								eShots.remove(i);
-								killShip();
-							}
-							if(collVector.getY() != 0){
+							if(collVector.getX() != 0 || collVector.getY() != 0){
 								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
 								eShots.remove(i);
 								killShip();
@@ -609,12 +581,7 @@ public class spaceGame extends BasicGame {
 							if(pShield.collides(en1) != null){
 								Collision collision = pShield.collides(en1);
 								Vector collVector = collision.getMinPenetration();
-								if(collVector.getX() != 0){
-									explosions.add(new Bang(en1.getX(), en1.getY()));
-									Enemies1.remove(i);
-									shipsDestroyed += 1;
-								}
-								if(collVector.getY() != 0){
+								if(collVector.getX() != 0 || collVector.getY() != 0){
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(i);
 									shipsDestroyed += 1;
@@ -626,10 +593,7 @@ public class spaceGame extends BasicGame {
 							if(pShield.collides(eShot) != null){
 								Collision collision = pShield.collides(eShot);
 								Vector collVector = collision.getMinPenetration();
-								if(collVector.getX() != 0){
-									eShots.remove(i);
-								}
-								if(collVector.getY() != 0){
+								if(collVector.getX() != 0 || collVector.getY() != 0){
 									eShots.remove(i);
 								}
 							}
@@ -641,10 +605,9 @@ public class spaceGame extends BasicGame {
 					for(int j = 0; j < Enemies1.size(); j++){
 						en1 = Enemies1.get(j);
 						if(pShot.collides(en1) != null){
-							System.out.println("fineGrainedCollides = true");
 							Collision collision = pShot.collides(en1);
 							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0){
+							if(collVector.getX() != 0 || collVector.getY() != 0){
 								en1.hits += 1;
 								if(dropPowerUp()){
 									int powers = selectPowerUp();
@@ -675,43 +638,11 @@ public class spaceGame extends BasicGame {
 									shipsDestroyed += 1;
 									score += 100;
 								}
-							}
-							else if(collVector.getY() != 0){
-								en1.hits += 1;
-								if(dropPowerUp()){
-									int powers = selectPowerUp();
-									power = new PowerUp(en1.getX(), en1.getY(), 0f, 0.2f, powers);
-									pws.add(power);
-									}
-								if((en1.type == 1 || en1.type == 4) && en1.hits >= 1){
-									explosions.add(new Bang(en1.getX(), en1.getY()));
-									Enemies1.remove(j);
-									shipsDestroyed += 1;
-									score += 20;
-								}
-								if(en1.type == 0 && en1.hits >= 2){
-									explosions.add(new Bang(en1.getX(), en1.getY()));
-									Enemies1.remove(j);
-									shipsDestroyed += 1;
-									score += 10;
-								}
-								if(en1.type == 2 && en1.hits >= 1){
-									explosions.add(new Bang(en1.getX(), en1.getY()));
-									Enemies1.remove(j);
-									shipsDestroyed += 1;
-									score += 50;
-								}
-								if(en1.type == 5 && en1.hits >= 1){
+								if((en1.type == 6 || en1.type == 7) && en1.hits >= 1){
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
 									score += 100;
-								}
-								if((en1.type == 6  || en1.type == 7) && en1.hits >= 1){
-									explosions.add(new Bang(en1.getX(), en1.getY()));
-									Enemies1.remove(j);
-									shipsDestroyed += 1;
-									score += 50;
 								}
 							}
 							pShots.remove(i);
@@ -722,13 +653,7 @@ public class spaceGame extends BasicGame {
 						if(pShot.collides(boss) != null && boss.isAlive){
 							Collision collision = pShot.collides(boss);
 							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0){
-								pShots.remove(i);
-								boss.hits += 1;
-								if(boss.hits >= 15)
-									killBoss();
-							}
-							if(collVector.getY() != 0){
+							if(collVector.getX() != 0 || collVector.getY() != 0){
 								pShots.remove(i);
 								boss.hits += 1;
 								if(boss.hits >= 15)
@@ -1038,9 +963,7 @@ public class spaceGame extends BasicGame {
 						en1.chaseTimer = 0;
 						en1.setVelocity(en1.chase(en1.getX(), en1.getY(), playerShip.getX(),
 								playerShip.getY(), en1.face));
-						//System.out.println("rotation: " + en1.getRotation());
 						en1.setRotation(en1.getPosition().angleTo(playerShip.getPosition()) * 2);
-						//System.out.println("angleTo: " + en1.getPosition().angleTo(playerShip.getPosition()));
 					}
 				}
 				if(en1.getCoarseGrainedMinY() >= ScreenHeight
@@ -1150,7 +1073,7 @@ public class spaceGame extends BasicGame {
 
 		public spaceShip(final float x, final float y, final float vx, final float vy) {
 			super(x, y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/playerShip.png"));
+			this.addImage(ResourceManager.getImage("resource/playerShip.png"));
 			this.addShape(new ConvexPolygon(90f, 30f), new Vector(0f, 15f));
 			this.addShape(new ConvexPolygon(30f, 15f), new Vector(0f, -15f));
 			velocity = new Vector(vx, vy);
@@ -1298,38 +1221,6 @@ public class spaceGame extends BasicGame {
 			newY = y2 - y1;
 			newX /= (4 * distance);
 			newY /= (4 * distance);
-			//en1.rotate(newX * 2);
-			/*
-			//Mostly to the left, little y diff
-			if(x2 - x1 >= 150 && Math.abs(y2 - y1) < 50){
-				removeImage(ResourceManager.getImage(images[en1.face]));
-				en1.face = 4;
-				addImageWithBoundingBox(ResourceManager.getImage(images[en1.face]));
-			}
-			//Mostly to right, little y diff
-			else if(x2 - x1 <= -150 && Math.abs(y2 - y1) < 50){
-				removeImage(ResourceManager.getImage(images[en1.face]));
-				en1.face = 2;
-				addImageWithBoundingBox(ResourceManager.getImage(images[en1.face]));
-			}
-			//Angled to left and below
-			else if(x2 - x1 >= 200 && Math.abs(y2 - y1) > 100){
-				removeImage(ResourceManager.getImage(images[en1.face]));
-				en1.face = 3;
-				addImageWithBoundingBox(ResourceManager.getImage(images[en1.face]));
-			}
-			//Angled to right and below
-			else if(x2 - x1 <= -200 && Math.abs(y2 - y1) > 100){
-				removeImage(ResourceManager.getImage(images[en1.face]));
-				en1.face = 1;
-				addImageWithBoundingBox(ResourceManager.getImage(images[en1.face]));
-			}
-			//Close to straight down
-			else{
-				removeImage(ResourceManager.getImage(images[en1.face]));
-				en1.face = 0;
-				addImageWithBoundingBox(ResourceManager.getImage(images[en1.face]));
-			}*/
 			chaseVector = new Vector(newX, newY);
 			return chaseVector;
 		}
@@ -1340,8 +1231,6 @@ public class spaceGame extends BasicGame {
 		public void shiftR(int face){
 			en1.rotateTimer += 1;
 			if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
-				//setVelocity(rotateR[en1.face]);
-				//en1.face += 1;
 				this.setVelocity(this.getVelocity().rotate(45));
 				this.rotate(45);
 			}
@@ -1349,8 +1238,6 @@ public class spaceGame extends BasicGame {
 		public void shiftL(int face){
 			en1.rotateTimer += 1;
 			if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
-				//setVelocity(rotateL[en1.face]);
-				//en1.face += 1;
 				this.setVelocity(this.getVelocity().rotate(-45));
 				this.rotate(-45);
 			}
@@ -1431,7 +1318,6 @@ public class spaceGame extends BasicGame {
 		public laser(final float x, final float y, final float vx, final float vy, int way){
 			super(x,y);
 			if(way == 0){
-				//addImageWithBoundingBox(ResourceManager.getImage("resource/laser.png"));
 				this.addImage(ResourceManager.getImage("resource/laser.png"));
 				this.addShape(new ConvexPolygon(5f, 18f), new Vector(1, 0));
 			}
