@@ -19,6 +19,7 @@ import jig.Vector;
 import org.newdawn.slick.Animation;
 import org.newdawn.slick.AppGameContainer;
 import org.newdawn.slick.BasicGame;
+import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Input;
@@ -90,7 +91,7 @@ public class spaceGame extends BasicGame {
 		ScreenHeight = height;
 		ScreenWidth = width;
 
-		Entity.setCoarseGrainedCollisionBoundary(Entity.AABB);
+		Entity.setCoarseGrainedCollisionBoundary(Entity.CIRCLE);
 		showLives = new ArrayList<lifeShip>(3);
 		pShots = new ArrayList<laser>(20);
 		Enemies1 = new ArrayList<simpleEnemy>(10);
@@ -118,8 +119,6 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/explosion.png");
 		ResourceManager.loadImage("resource/boom2.png");
 		ResourceManager.loadImage("resource/laser.png");
-		ResourceManager.loadImage("resource/laserL.png");
-		ResourceManager.loadImage("resource/laserR.png");
 		ResourceManager.loadImage("resource/enemy1.png");
 		ResourceManager.loadImage("resource/shield1.png");
 		ResourceManager.loadImage("resource/shieldIcon.png");
@@ -129,10 +128,6 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/enemyLaser.png");
 		ResourceManager.loadImage("resource/enemy3.png");
 		ResourceManager.loadImage("resource/enemy.png");
-		ResourceManager.loadImage("resource/enemy45.png");
-		ResourceManager.loadImage("resource/enemy-45.png");
-		ResourceManager.loadImage("resource/enemy90.png");
-		ResourceManager.loadImage("resource/enemy-90.png");
 		ResourceManager.loadImage("resource/Flameless.png");
 		ResourceManager.loadImage("resource/heart.png");
 		ResourceManager.loadImage("resource/icon_110.png");
@@ -142,13 +137,7 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/medal1.png");
 		ResourceManager.loadImage("resource/medal2.png");
 		ResourceManager.loadImage("resource/enemy5.png");
-		ResourceManager.loadImage("resource/enemy5r1.png");
-		ResourceManager.loadImage("resource/enemy5r2.png");
-		ResourceManager.loadImage("resource/enemy5r3.png");
 		ResourceManager.loadImage("resource/enemy5r4.png");
-		ResourceManager.loadImage("resource/enemy5r5.png");
-		ResourceManager.loadImage("resource/enemy5r6.png");
-		ResourceManager.loadImage("resource/enemy5r8.png");
 		ResourceManager.loadImage("resource/spaceship.pod.1.purple.png");
 		
 		ResourceManager.loadSound("resource/laser5.wav");
@@ -652,6 +641,7 @@ public class spaceGame extends BasicGame {
 					for(int j = 0; j < Enemies1.size(); j++){
 						en1 = Enemies1.get(j);
 						if(pShot.collides(en1) != null){
+							System.out.println("fineGrainedCollides = true");
 							Collision collision = pShot.collides(en1);
 							Vector collVector = collision.getMinPenetration();
 							if(collVector.getX() != 0){
@@ -1044,10 +1034,13 @@ public class spaceGame extends BasicGame {
 					eShots.add(eShot);
 				}
 				if(en1.type == 5){
-					if(en1.chaseTimer > 150 && playerShip.getY() - en1.getY() > -10 && playerShip.isAlive){
+					if(en1.chaseTimer > 150 && (playerShip.getY() - en1.getY() > -10) && playerShip.isAlive){
 						en1.chaseTimer = 0;
 						en1.setVelocity(en1.chase(en1.getX(), en1.getY(), playerShip.getX(),
 								playerShip.getY(), en1.face));
+						//System.out.println("rotation: " + en1.getRotation());
+						en1.setRotation(en1.getPosition().angleTo(playerShip.getPosition()) * 2);
+						//System.out.println("angleTo: " + en1.getPosition().angleTo(playerShip.getPosition()));
 					}
 				}
 				if(en1.getCoarseGrainedMinY() >= ScreenHeight
@@ -1089,8 +1082,6 @@ public class spaceGame extends BasicGame {
 					playerShip.canHit = true;
 			}
 
-			System.out.println("canHitTimer: " + playerShip.canHitTimer);
-			System.out.println("isAlive: " + playerShip.isAlive);
 			//Increment game timer 
 			gameTimer += 1;
 
@@ -1160,7 +1151,8 @@ public class spaceGame extends BasicGame {
 		public spaceShip(final float x, final float y, final float vx, final float vy) {
 			super(x, y);
 			addImageWithBoundingBox(ResourceManager.getImage("resource/playerShip.png"));
-			addShape(new ConvexPolygon(90, 30), new Vector(0f, 15f));
+			this.addShape(new ConvexPolygon(90f, 30f), new Vector(0f, 15f));
+			this.addShape(new ConvexPolygon(30f, 15f), new Vector(0f, -15f));
 			velocity = new Vector(vx, vy);
 			shotDelay = 0;
 			canShoot = true;
@@ -1215,18 +1207,6 @@ public class spaceGame extends BasicGame {
 		public boolean canShoot;
 		private int chaseTimer;
 		public int rotateTimer;
-		private String images[] = new String[]{"resource/enemy.png","resource/enemy45.png",
-			"resource/enemy90.png", "resource/enemy-45.png", "resource/enemy-90.png"};
-		private String images1[] = new String[]{"resource/enemy5.png", "resource/enemy5r1.png",
-				"resource/enemy5r2.png", "resource/enemy5r3.png", "resource/enemy5r4.png",
-				"resource/enemy5r5.png", "resource/enemy5r6.png"};
-		private String images2[] = new String[]{"resource/enemy5r4.png", "resource/enemy5r3.png",
-				"resource/enemy5r2.png", "resource/enemy5r1.png", "resource/enemy5.png",
-				"resource/enemy5r8.png", "resource/enemy5r6.png"};
-		private Vector rotateR[] = new Vector[]{new Vector(-0.15f, -0.15f), new Vector(0f, -0.2f), 
-				new Vector(0.15f, -0.15f), new Vector(0.2f, 0f), new Vector(0.15f, 0.15f), new Vector(0f, 0.3f)};
-		private Vector rotateL[] = new Vector[]{new Vector(0.15f, -0.15f), new Vector(0f, -0.2f),
-				new Vector(-0.15f, -0.15f), new Vector(-0.2f, 0f), new Vector(-0.15f, 0.15f), new Vector(0f, 0.3f)	};
 		
 		public simpleEnemy(final float x, final float y, final float vx, final float vy, int flag){
 			super(x,y);
@@ -1237,34 +1217,52 @@ public class spaceGame extends BasicGame {
 			face = 0;
 			chaseTimer = 0;
 			rotateTimer = 0;
-			if(type == 0)
-				addImageWithBoundingBox(ResourceManager.getImage("resource/enemy2.png"));
+			if(type == 0){
+				this.addImage(ResourceManager.getImage("resource/enemy2.png"));
+				this.addShape(new ConvexPolygon(52f, 140f), new Vector(0f, 0f));
+				this.addShape(new ConvexPolygon(98f, 75f), new Vector(0f, 25f));
+				this.addShape(new ConvexPolygon(7f, 57f), new Vector(42.5f, 10f));
+				this.addShape(new ConvexPolygon(7f, 57f), new Vector(-42.5f, 10f));
+			}
 			if(type == 1){
-				addImageWithBoundingBox(ResourceManager.getImage("resource/enemy1.png"));
+				this.addImage(ResourceManager.getImage("resource/enemy1.png"));
+				this.addShape(new ConvexPolygon(13f, 63f), new Vector(0, 10));
+				this.addShape(new ConvexPolygon(64f, 30f), new Vector(0, -6));
 				canChangeV = true;
 			}
 			else if(type == 4){
-				addImageWithBoundingBox(ResourceManager.getImage("resource/enemy1.png"));
+				this.addImage(ResourceManager.getImage("resource/enemy1.png"));
+				this.addShape(new ConvexPolygon(13f, 63f), new Vector(0, 10));
+				this.addShape(new ConvexPolygon(64f, 30f), new Vector(0, -6));
 				canChangeV = true;
 			}
 			else
 				canChangeV = false;
 			if(type == 2){
-				addImageWithBoundingBox(ResourceManager.getImage("resource/enemy3.png"));
+				this.addImage(ResourceManager.getImage("resource/enemy3.png"));
+				this.addShape(new ConvexPolygon(60f, 36f));
 				canShoot = true;
 			}
 			else
 				canShoot = false;
 			if(type == 5){
-				addImageWithBoundingBox(ResourceManager.getImage(images[0]));
+				this.addImage(ResourceManager.getImage("resource/enemy.png"));
+				this.addShape(new ConvexPolygon(70f, 7f), new Vector(0f, -1.5f));
+				this.addShape(new ConvexPolygon(38f, 21f), new Vector(0f, 0f));
 			}
 			if(type == 6){
-				addImageWithBoundingBox(ResourceManager.getImage(images1[0]));
+				this.addImage(ResourceManager.getImage("resource/enemy5.png"));
+				this.addShape(new ConvexPolygon(76f, 28f), new Vector(-2f, 0f));
+				this.addShape(new ConvexPolygon(63f, 8f), new Vector(3.5f, 25f));
+				this.addShape(new ConvexPolygon(63f, 8f), new Vector(3.5f, -25f));
 				canChangeV = true;
 				canShoot = true;
 			}
 			if(type == 7){
-				addImageWithBoundingBox(ResourceManager.getImage(images1[4]));
+				this.addImage(ResourceManager.getImage("resource/enemy5r4.png"));
+				this.addShape(new ConvexPolygon(76f, 28f), new Vector(2f, 0f));
+				this.addShape(new ConvexPolygon(63f, 8f), new Vector(-3.5f, 25f));
+				this.addShape(new ConvexPolygon(63f, 8f), new Vector(-3.5f, -25f));
 				canChangeV = true;
 				canShoot = true;
 			}
@@ -1300,6 +1298,8 @@ public class spaceGame extends BasicGame {
 			newY = y2 - y1;
 			newX /= (4 * distance);
 			newY /= (4 * distance);
+			//en1.rotate(newX * 2);
+			/*
 			//Mostly to the left, little y diff
 			if(x2 - x1 >= 150 && Math.abs(y2 - y1) < 50){
 				removeImage(ResourceManager.getImage(images[en1.face]));
@@ -1329,31 +1329,32 @@ public class spaceGame extends BasicGame {
 				removeImage(ResourceManager.getImage(images[en1.face]));
 				en1.face = 0;
 				addImageWithBoundingBox(ResourceManager.getImage(images[en1.face]));
-			}
+			}*/
 			chaseVector = new Vector(newX, newY);
 			return chaseVector;
 		}
+		
+		public void newRotation(final float x1, final float x2){
+			
+		}
 		public void shiftR(int face){
-				en1.rotateTimer += 1;
-				if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
-					removeImage(ResourceManager.getImage(images1[en1.face]));
-					setVelocity(rotateR[en1.face]);
-					en1.face += 1;
-					addImageWithBoundingBox(ResourceManager.getImage(images1[en1.face]));
-					if(en1.face >= 6)
-						en1.canChangeV = false;
-				}
-		}public void shiftL(int face){
 			en1.rotateTimer += 1;
 			if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
-				removeImage(ResourceManager.getImage(images2[en1.face]));
-				setVelocity(rotateL[en1.face]);
-				en1.face += 1;
-				addImageWithBoundingBox(ResourceManager.getImage(images2[en1.face]));
-				if(en1.face >= 6)
-					en1.canChangeV = false;
+				//setVelocity(rotateR[en1.face]);
+				//en1.face += 1;
+				this.setVelocity(this.getVelocity().rotate(45));
+				this.rotate(45);
 			}
-	}
+		}
+		public void shiftL(int face){
+			en1.rotateTimer += 1;
+			if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
+				//setVelocity(rotateL[en1.face]);
+				//en1.face += 1;
+				this.setVelocity(this.getVelocity().rotate(-45));
+				this.rotate(-45);
+			}
+		}
 		public void update(final int delta) {
 			translate(velocity.scale(delta));
 			moveTimer += delta;
@@ -1429,12 +1430,21 @@ public class spaceGame extends BasicGame {
 		private Vector speed;
 		public laser(final float x, final float y, final float vx, final float vy, int way){
 			super(x,y);
-			if(way == 0)
-				addImageWithBoundingBox(ResourceManager.getImage("resource/laser.png"));
-			if(way == 1)
-				addImageWithBoundingBox(ResourceManager.getImage("resource/laserR.png"));
-			if(way == 2)
-				addImageWithBoundingBox(ResourceManager.getImage("resource/laserL.png"));
+			if(way == 0){
+				//addImageWithBoundingBox(ResourceManager.getImage("resource/laser.png"));
+				this.addImage(ResourceManager.getImage("resource/laser.png"));
+				this.addShape(new ConvexPolygon(5f, 18f), new Vector(1, 0));
+			}
+			if(way == 1){
+				this.addImage(ResourceManager.getImage("resource/laser.png"));
+				this.addShape(new ConvexPolygon(5f, 18f), new Vector(1, 0));
+				this.rotate(45);
+			}
+			if(way == 2){
+				this.addImage(ResourceManager.getImage("resource/laser.png"));
+				this.addShape(new ConvexPolygon(5f, 18f), new Vector(1, 0));
+				this.rotate(-45);
+			}
 			speed = new Vector(vx, vy);
 		}
 		
@@ -1447,7 +1457,7 @@ public class spaceGame extends BasicGame {
 		private Vector speed;
 		public enemyLaser(final float x, final float y, final Vector v){
 			super(x,y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/enemyLaser.png"));
+			this.addImageWithBoundingBox(ResourceManager.getImage("resource/enemyLaser.png"));
 			speed = v;
 		}
 		
@@ -1490,7 +1500,8 @@ public class spaceGame extends BasicGame {
 		public int timeOn;
 		public shipShield(final float x, final float y, final float vx, final float vy){
 			super(x,y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/shield1.png"));
+			this.addImage(ResourceManager.getImage("resource/shield1.png"));
+			this.addShape(new ConvexPolygon(70, 32));
 			speed = new Vector(vx, vy);
 			timeOn = 0;
 		}
@@ -1515,10 +1526,27 @@ public class spaceGame extends BasicGame {
 		public boss(final float x, final float y, final float vx, final float vy, final int flag){
 			super(x,y);
 			type = flag;
-			if(flag == 0)
-				addImageWithBoundingBox(ResourceManager.getImage("resource/boss1.png"));
-			if(flag == 1)
-				addImageWithBoundingBox(ResourceManager.getImage("resource/spaceship.pod.1.purple.png"));
+			if(flag == 0){
+				this.addImage(ResourceManager.getImage("resource/boss1.png"));
+				this.addShape(new ConvexPolygon(202f, 250f));
+				this.addShape(new ConvexPolygon(21f, 35f), new Vector(145.5f, 151.5f));
+				this.addShape(new ConvexPolygon(21f, 35f), new Vector(-145.5f, 151.5f));
+				this.addShape(new ConvexPolygon(30f, 65f), new Vector(161f, 110.5f));
+				this.addShape(new ConvexPolygon(30f, 65f), new Vector(-161f, 110.5f));
+				this.addShape(new ConvexPolygon(60f, 63f), new Vector(166f, 31.5f));
+				this.addShape(new ConvexPolygon(60f, 63f), new Vector(-166f, 31.5f));
+			}
+			if(flag == 1){
+				this.addImage(ResourceManager.getImage("resource/spaceship.pod.1.purple.png"));
+				this.addShape(new ConvexPolygon(102f, 63f), new Vector(6f, 73.5f));
+				this.addShape(new ConvexPolygon(75f, 42f), new Vector(-0.5f, 127f));
+				this.addShape(new ConvexPolygon(41f, 35f), new Vector(1f, 166.5f));
+				this.addShape(new ConvexPolygon(296f, 80f), new Vector(1f, -36f));
+				this.addShape(new ConvexPolygon(45f, 34f), new Vector(169.5f, -51f));
+				this.addShape(new ConvexPolygon(45f, 24f), new Vector(-169.5f, -51f));
+				this.addShape(new ConvexPolygon(18f, 41f), new Vector(202f, -88.5f));
+				this.addShape(new ConvexPolygon(18f, 41f), new Vector(-202f, -88.5f));
+			}
 			speed = new Vector(vx, vy);
 			shotDelay = 0;
 			canShoot = true;
