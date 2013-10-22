@@ -9,13 +9,11 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
-import java.awt.*;
 
 import jig.Collision;
 import jig.ConvexPolygon;
 import jig.Entity;
 import jig.ResourceManager;
-import jig.Shape;
 import jig.Vector;
 
 import org.newdawn.slick.Animation;
@@ -38,6 +36,7 @@ public class spaceGame extends BasicGame {
 	private static final int TRANSITION = 4;
 	private static final int WIN = 5;
 	private static final int EXIT = 6;
+	private static final int PAUSE = 7;
 
 	private final int ScreenWidth;
 	private final int ScreenHeight;
@@ -183,14 +182,14 @@ public class spaceGame extends BasicGame {
 		container.setSoundOn(true);
 	}
 	
-	/*
-	 * Pause the game
+	
+	//Pause the game
 	 
 	public void pauseGame(){
 		gameState = PAUSE;
 	}
 
-	*/
+	
 	/**
 	 * Put the game in the GameOver state, which will last for a limited time.
 	 * Also resets timers and score.
@@ -327,7 +326,7 @@ public class spaceGame extends BasicGame {
 				b.render(g);
 			break;
 		case WIN:
-
+			//Add stuff here soon
 		}
 	}
 
@@ -373,7 +372,6 @@ public class spaceGame extends BasicGame {
 		playerShip.setX(ScreenWidth / 2);
 		playerShip.setY(650);
 		playerShip.setVelocity(new Vector(0, 0));
-		//playerShip.removeImage(ResourceManager.getImage("resource/playerShip.png"));
 	}
 	
 	/*
@@ -383,12 +381,17 @@ public class spaceGame extends BasicGame {
 			boss.setVelocity(new Vector(0f, 0f));
 			boss.canShoot = false;
 			boss.isAlive = false;
-			booms.add(new Booms(boss.getX(), boss.getY() + 100));
-			booms.add(new Booms(boss.getX() + 100, boss.getY() +100));
-			booms.add(new Booms(boss.getX() - 100, boss.getY() + 100));
-			//explosions.add(new Bang(boss.getX(), boss.getY() + 100));
-			//explosions.add(new Bang(boss.getX() - 100, boss.getY() + 100));
-			//explosions.add(new Bang(boss.getX() + 100, boss.getY() + 100));
+			//booms.add(new Booms(boss.getX(), boss.getY() + 100));
+			//booms.add(new Booms(boss.getX() + 100, boss.getY() +100));
+			//booms.add(new Booms(boss.getX() - 100, boss.getY() + 100));
+			explosions.add(new Bang(boss.getX(), boss.getY() + 100));
+			explosions.add(new Bang(boss.getX() - 100, boss.getY() + 100));
+			explosions.add(new Bang(boss.getX() + 100, boss.getY() + 100));
+			explosions.add(new Bang(boss.getX(), boss.getY() + 150));
+			explosions.add(new Bang(boss.getX() + 50, boss.getY() + 150));
+			explosions.add(new Bang(boss.getX() - 50, boss.getY() - 150));
+			explosions.add(new Bang(boss.getX() + 150, boss.getY() + 50));
+			explosions.add(new Bang(boss.getX() - 150, boss.getY() + 50));
 			boss1.clear();
 	}
 	/**
@@ -657,6 +660,7 @@ public class spaceGame extends BasicGame {
 							Collision collision = pShot.collides(boss);
 							Vector collVector = collision.getMinPenetration();
 							if(collVector.getX() != 0 || collVector.getY() != 0){
+								booms.add(new Booms(pShot.getX(), pShot.getY() - 5));
 								pShots.remove(i);
 								boss.hits += 1;
 								if(boss.hits >= 15)
@@ -1190,16 +1194,6 @@ public class spaceGame extends BasicGame {
 				this.addShape(new ConvexPolygon(76f, 28f), new Vector(2f, 0f));
 				this.addShape(new ConvexPolygon(63f, 8f), new Vector(-3.5f, 25f));
 				this.addShape(new ConvexPolygon(63f, 8f), new Vector(-3.5f, -25f));
-				canChangeV = true;
-				canShoot = true;
-			}
-			if(type == 6){
-				addImageWithBoundingBox(ResourceManager.getImage(images1[0]));
-				canChangeV = true;
-				canShoot = true;
-			}
-			if(type == 7){
-				addImageWithBoundingBox(ResourceManager.getImage(images1[4]));
 				canChangeV = true;
 				canShoot = true;
 			}
