@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.Random;
 
 import jig.Collision;
+import jig.ConvexPolygon;
 import jig.Entity;
 import jig.ResourceManager;
 import jig.Vector;
@@ -42,6 +43,7 @@ public class spaceGame extends BasicGame {
 	private static int gameState; 
 	private int gameOverTimer;
 	private ArrayList<Bang> explosions;
+	private ArrayList<Booms> booms;
 	private Background space;
 	private spaceShip playerShip;
 	private ArrayList<lifeShip> showLives;
@@ -56,18 +58,19 @@ public class spaceGame extends BasicGame {
 	private shieldIcon sIcon;
 	private ArrayList<shipShield> pShields;
 	private shipShield pShield;
-	private boss1 boss;
+	private boss boss;
+	private ArrayList<boss> boss1;
 	private ArrayList<enemyLaser> eShots;
 	private enemyLaser eShot;
 	private int lives = 3;
 	private Random random;
 	public int score = 0;
+	public int highScore = 0;
 	private int gameTimer = 0;
 	private int level = 1;
 	private int shipsCreated = 0;
 	private int shipsDestroyed = 0;
-	//private long timeStart = 0, timeStart1 = 0, timeStart2 = 0;
-	//private long timeEnd = 0, timeEnd1 = 0, timeEnd2 = 0;
+	private int flash = 0;
 	public static Connection db_conn;
 	public static ResultSet rs;
 	public static Statement stmt;
@@ -92,16 +95,18 @@ public class spaceGame extends BasicGame {
 		pShots = new ArrayList<laser>(20);
 		Enemies1 = new ArrayList<simpleEnemy>(10);
 		explosions = new ArrayList<Bang>(10);
+		booms = new ArrayList<Booms>(10);
 		pws = new ArrayList<PowerUp>(5);
 		sIcons = new ArrayList<shieldIcon>(3);
 		pShields = new ArrayList<shipShield>(2);
 		eShots = new ArrayList<enemyLaser>(10);
+		boss1 = new ArrayList<boss>(2);
+
 	}
 
 	/**
 	 * Initialize the game after the container has been set up. This is one-time
-	 * initialization, and a good place to do things like load sounds and
-	 * graphics...
+	 * initialization, and loads all images and sounds.
 	 * 
 	 */
 	@Override
@@ -111,7 +116,10 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/lifeShip.png");
 		ResourceManager.loadImage("resource/space-1.jpg");
 		ResourceManager.loadImage("resource/explosion.png");
+		ResourceManager.loadImage("resource/boom2.png");
 		ResourceManager.loadImage("resource/laser.png");
+		ResourceManager.loadImage("resource/laserL.png");
+		ResourceManager.loadImage("resource/laserR.png");
 		ResourceManager.loadImage("resource/enemy1.png");
 		ResourceManager.loadImage("resource/shield1.png");
 		ResourceManager.loadImage("resource/shieldIcon.png");
@@ -126,26 +134,35 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/enemy90.png");
 		ResourceManager.loadImage("resource/enemy-90.png");
 		ResourceManager.loadImage("resource/Flameless.png");
+		ResourceManager.loadImage("resource/heart.png");
+		ResourceManager.loadImage("resource/icon_110.png");
 		ResourceManager.loadImage("resource/level2.png");
+		ResourceManager.loadImage("resource/level3.png");
+		ResourceManager.loadImage("resource/title.png");
 		ResourceManager.loadImage("resource/medal1.png");
 		ResourceManager.loadImage("resource/medal2.png");
+		ResourceManager.loadImage("resource/enemy5.png");
+		ResourceManager.loadImage("resource/enemy5r1.png");
+		ResourceManager.loadImage("resource/enemy5r2.png");
+		ResourceManager.loadImage("resource/enemy5r3.png");
+		ResourceManager.loadImage("resource/enemy5r4.png");
+		ResourceManager.loadImage("resource/enemy5r5.png");
+		ResourceManager.loadImage("resource/enemy5r6.png");
+		ResourceManager.loadImage("resource/enemy5r8.png");
+		ResourceManager.loadImage("resource/spaceship.pod.1.purple.png");
 		
 		ResourceManager.loadSound("resource/laser5.wav");
 		ResourceManager.loadSound("resource/explosion.wav");
+		ResourceManager.loadSound("resource/magnetic_field_1.wav");
+		ResourceManager.loadSound("resource/laser_gun_2.wav");
 		
-		// the sound resource takes a particularly long time to load,
-		// we preload it here to (1) reduce latency when we first play it
-		// and (2) because loading it will load the audio libraries and
-		// unless that is done now, we can't *disable* sound as we
-		// attempt to do in the startUp() method.
 		space = new Background(ScreenWidth / 2, ScreenHeight / 2);
 		playerShip = new spaceShip(ScreenWidth / 2, 650, 0, 0);
-		boss = new boss1(ScreenWidth / 2, 100, 0f, 0f);
-		life1 = new lifeShip(30, 90);
+		life1 = new lifeShip(30, 110);
 		showLives.add(life1);
-		life1 = new lifeShip(80, 90);
+		life1 = new lifeShip(80, 110);
 		showLives.add(life1);
-		life1 = new lifeShip(130, 90);
+		life1 = new lifeShip(130, 110);
 		showLives.add(life1);
 		sIcon = new shieldIcon(170, 685);
 		sIcons.add(sIcon);
@@ -155,9 +172,14 @@ public class spaceGame extends BasicGame {
 	}
 
 	/**
-	 * Put the game in 'demo' mode to lure new players!
+	 * Start up the game container and pull the high score from the database
 	 */
 	public void startUp(GameContainer container) {
+		try {
+			highScore = getHighScore();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		gameState = START_UP;
 		container.setSoundOn(false);
 	}
@@ -180,10 +202,20 @@ public class spaceGame extends BasicGame {
 	*/
 	/**
 	 * Put the game in the GameOver state, which will last for a limited time.
+	 * Also resets timers and score.
 	 */
 	public void gameOver() {
-		gameState = GAME_OVER;
+		try{
+		addScore(score);
+		} catch(SQLException e){
+			e.printStackTrace();
+		}
+		score = 0;
 		gameOverTimer = 4000;
+		gameTimer = 0;
+		level = 1;
+		playerShip.timeDead = -1;
+		gameState = GAME_OVER;
 	}
 	
 	public void gameWon(){
@@ -198,13 +230,14 @@ public class spaceGame extends BasicGame {
 			throws SlickException {
 		switch (gameState) {
 		case PLAYING:
-			//timeStart = System.nanoTime();
 			space.render(g);
-			//timeStart2 = System.nanoTime();
-			if(playerShip.timeDead <= 0){
+			
+			if(playerShip.canHitTimer % 3 == 0 && !playerShip.canHit && playerShip.isAlive){
 				playerShip.render(g);
 			}
-			//timeEnd2 = System.nanoTime();
+			else if(playerShip.timeDead <= 0 && playerShip.canHit){
+				playerShip.render(g);
+			}
 			for(int i = 0; i < lives; i++){
 				life1 = showLives.get(i);
 				life1.render(g);
@@ -225,7 +258,8 @@ public class spaceGame extends BasicGame {
 				pShield = pShields.get(i);
 				pShield.render(g);
 			}
-			if(boss.isAlive){
+			for(int i = 0; i < boss1.size(); i++){
+				boss = boss1.get(i);
 				boss.render(g);
 			}
 			for(int i = 0; i < eShots.size(); i ++){
@@ -238,12 +272,12 @@ public class spaceGame extends BasicGame {
 			}
 			for(Bang b : explosions)
 				b.render(g);
+			for(Booms b: booms)
+				b.render(g);
 			g.drawString("Score: " + score, 10, 30);
-			g.drawString("Lives: ", 10, 50);
+			g.drawString("High Score: " + highScore, 10, 50);
+			g.drawString("Lives: ", 10, 70);
 			g.drawString("Shield Available: ", 10, 675);
-			//timeEnd = System.nanoTime();
-			//System.out.println("renderTime = " + (timeEnd - timeStart));
-			//System.out.println("playerShip render = " + (timeEnd2 - timeStart2));
 			break;
 		case START_UP:
 			space.render(g);
@@ -252,28 +286,53 @@ public class spaceGame extends BasicGame {
 				life1 = showLives.get(i);
 				life1.render(g);
 			}
+			g.drawImage(ResourceManager.getImage("resource/title.png"), ScreenWidth / 3 + 50, ScreenHeight / 4);
+			if(flash >= 40){
+			g.drawString("Press Enter to Begin", ScreenWidth / 3 + 50, ScreenHeight / 3 + 90);
+			}
+			if(flash >= 80)
+				flash = 0;
+			flash++;
 			g.drawString("Score: ?", 10, 30);
-			g.drawString("Lives: ", 10, 50);
+			g.drawString("Lives: ", 10, 70);
+			g.drawString("High Score: " + highScore, 10, 50);
 			break;
 		case GAME_OVER:
 			space.render(g);
+			g.drawString("Game Over", ScreenWidth / 3 + 60, ScreenHeight / 3 + 90);
+			g.drawString("High Score: " + highScore, 10, 50);
+			lives = 3;
+			score = 0;
+			playerShip.setPosition(ScreenWidth / 2, 650);
 			for(Bang b : explosions)
+				b.render(g);
+			for(Booms b: booms)
 				b.render(g);
 			break;
 		case TRANSITION:
 			space.render(g);
 			playerShip.render(g);
+			g.drawString("Ships Created = " + shipsCreated, ScreenWidth / 3 + 50, ScreenHeight / 3 + 50);
+			g.drawString("Ships Destroyed = " + shipsDestroyed, ScreenWidth / 3 + 40, ScreenHeight / 3 + 70);
 			if(shipsCreated == shipsDestroyed){
 				g.drawImage(ResourceManager.getImage("resource/medal1.png"), ScreenWidth / 2 - 20, ScreenHeight / 3);
+				g.drawString("Great job! You got them all!", ScreenWidth / 3 + 20, ScreenHeight / 3 + 90);
 			}
 			else if(shipsCreated - shipsDestroyed <= 2){
 				g.drawImage(ResourceManager.getImage("resource/medal2.png"), ScreenWidth / 2 - 20, ScreenHeight / 3);
+				g.drawString("You almost did it....", ScreenWidth / 3 + 40, ScreenHeight / 3 + 90);
+			}
+			else{
+				g.drawString("Better luck next time!", ScreenWidth / 3 + 30, ScreenHeight / 3 + 90);
 			}
 			if(level == 2)
 				g.drawImage(ResourceManager.getImage("resource/level2.png"), ScreenWidth / 3 + 40, ScreenHeight / 2);
 			if(level == 3)
 				g.drawImage(ResourceManager.getImage("resource/level3.png"), ScreenWidth / 3 + 40, ScreenHeight / 2);
+			g.drawString("Press Enter to Continue", ScreenWidth / 3 + 40, ScreenHeight / 2 + 50);
 			for (Bang b : explosions)
+				b.render(g);
+			for(Booms b: booms)
 				b.render(g);
 			break;
 		case WIN:
@@ -281,16 +340,21 @@ public class spaceGame extends BasicGame {
 		}
 	}
 
+	/*
+	 * Determine if a powerup should drop.
+	 */
 	public boolean dropPowerUp(){
 		random = new Random();
 		float x = random.nextFloat();
-		System.out.println(x);
 		if(x <= 0.2)
 			return true;
 		else
 			return false;
 	}
 	
+	/*
+	 * Select which powerup will drop.
+	 */
 	public int selectPowerUp(){
 		random = new Random();
 		float x = random.nextFloat();
@@ -305,24 +369,36 @@ public class spaceGame extends BasicGame {
 			return 0;
 	}
 	
+	/*
+	 * Method to remove the player ship and reset it on death
+	 */
 	public void killShip(){
 		playerShip.isAlive = false;
 		lives -= 1;
 		score -= 100;
 		playerShip.timeDead = 1000;
+		playerShip.canHit = false;
+		playerShip.canHitTimer = 150;
 		playerShip.setX(ScreenWidth / 2);
 		playerShip.setY(650);
 		playerShip.setVelocity(new Vector(0, 0));
-		playerShip.removeImage(ResourceManager.getImage("resource/playerShip.png"));
+		//playerShip.removeImage(ResourceManager.getImage("resource/playerShip.png"));
 	}
 	
+	/*
+	 * Effects at the time of the boss ship's demise
+	 */
 	public void killBoss(){
 			boss.setVelocity(new Vector(0f, 0f));
 			boss.canShoot = false;
 			boss.isAlive = false;
-			explosions.add(new Bang(boss.getX(), boss.getY() + 100));
-			explosions.add(new Bang(boss.getX() - 100, boss.getY() + 100));
-			explosions.add(new Bang(boss.getX() + 100, boss.getY() + 100));
+			booms.add(new Booms(boss.getX(), boss.getY() + 100));
+			booms.add(new Booms(boss.getX() + 100, boss.getY() +100));
+			booms.add(new Booms(boss.getX() - 100, boss.getY() + 100));
+			//explosions.add(new Bang(boss.getX(), boss.getY() + 100));
+			//explosions.add(new Bang(boss.getX() - 100, boss.getY() + 100));
+			//explosions.add(new Bang(boss.getX() + 100, boss.getY() + 100));
+			boss1.clear();
 	}
 	/**
 	 * Update the game state based on user input and events that transpire in
@@ -332,8 +408,6 @@ public class spaceGame extends BasicGame {
 	public void update(GameContainer container, int delta)
 			throws SlickException {
 
-		// in the GameOver state we just updated the explosions and wait until
-		// the state switches... The ball is invisible and paralyzed.
 		if (gameState == GAME_OVER) {
 			gameOverTimer -= delta;
 			if (gameOverTimer <= 0)
@@ -356,9 +430,21 @@ public class spaceGame extends BasicGame {
 				}
 				if(playerShip.getY() > 0)
 					playerShip.setVelocity(new Vector(0f, -0.3f));
-				if(playerShip.getY() < 0){
-					playerShip.setPosition(ScreenWidth / 2, 650);
-					gameState = PLAYING;
+				if(playerShip.getCoarseGrainedMaxY() <= 0){
+					playerShip.setVelocity(new Vector(0f, 0f));
+					playerShip.threeWay = false;
+					playerShip.threeWayTimer = 0;
+					playerShip.powerUp = false;
+					playerShip.powerUpTimer = 0;
+					playerShip.shieldOn = false;
+					if(input.isKeyDown(Input.KEY_ENTER)){
+						for(int i = 0; i < pShields.size(); i++){
+							pShield = pShields.get(i);
+							pShield.setPosition(ScreenWidth / 2, 650);
+						}
+						playerShip.setPosition(ScreenWidth / 2, 650);
+						gameState = PLAYING;
+					}
 				}
 				playerShip.update(delta);
 			} else if(gameState == WIN){
@@ -415,12 +501,23 @@ public class spaceGame extends BasicGame {
 						playerShip.setVelocity(new Vector(0f, 0));
 					}
 					if(input.isKeyDown(Input.KEY_RSHIFT) && playerShip.canShield > 0
-						&& playerShip.isAlive){
+						&& playerShip.isAlive && !playerShip.shieldOn){
 						pShield = new shipShield(playerShip.getX(), playerShip.getY(), 0, 0);
 						pShields.add(pShield);
+						ResourceManager.getSound("resource/magnetic_field_1.wav").play();
 						playerShip.shieldOn = true;
 						playerShip.canShield -= 1;
 					}
+				}
+				//System.out.println("Lives: " + lives);
+				if (gameState == PLAYING && lives == 0) {
+					System.out.println("Game Over");
+					Enemies1.clear();
+					pShots.clear();
+					eShots.clear();
+					pws.clear();
+					boss1.clear();
+					gameOver();
 				}
 				if(playerShip.getCoarseGrainedMaxX() > ScreenWidth){
 					playerShip.setVelocity(new Vector(-0.05f, 0f));
@@ -435,7 +532,6 @@ public class spaceGame extends BasicGame {
 				playerShip.setVelocity(new Vector(0f, 0.5f));
 				}
 			
-				//timeStart1 = System.nanoTime();
 				for(int i = 0; i < pws.size(); i ++){
 					power = pws.get(i);
 					if(playerShip.collides(power) != null){
@@ -444,23 +540,20 @@ public class spaceGame extends BasicGame {
 						if(collVector.getX() != 0){
 							if(playerShip.canShield <= 1 && power.type == 0){
 								playerShip.canShield += 1;
-								System.out.println("adding shield");
 							}
 							if(power.type == 1 && lives < 3){
 								lives += 1;
-								System.out.println("adding life");
 							}
 							if(power.type == 2){
 								playerShip.powerUpTimer = 0;
 								playerShip.powerUp = true;
-								System.out.println("rapid fire");
 							}
 							if(power.type == 3){
 								playerShip.threeWayTimer = 0;
 								playerShip.threeWay = true;
-								System.out.println("threeway");
 							}
 							pws.remove(i);
+							score += 50;
 						}
 						if(collVector.getY() != 0){
 							if(playerShip.canShield <= 1 && power.type == 0)
@@ -476,11 +569,12 @@ public class spaceGame extends BasicGame {
 								playerShip.threeWay = true;
 							}
 							pws.remove(i);
+							score += 50;
 						}
 					}
 				}
 				
-				if(!playerShip.shieldOn && playerShip.isAlive){
+				if(!playerShip.shieldOn && playerShip.canHit){
 					for(int i = 0; i < Enemies1.size(); i++){
 						en1 = Enemies1.get(i);
 						if(playerShip.collides(en1) != null){
@@ -562,23 +656,18 @@ public class spaceGame extends BasicGame {
 							Vector collVector = collision.getMinPenetration();
 							if(collVector.getX() != 0){
 								en1.hits += 1;
-								System.out.println("Collision");
 								if(dropPowerUp()){
 									int powers = selectPowerUp();
 									power = new PowerUp(en1.getX(), en1.getY(), 0f, 0.2f, powers);
-									System.out.println("Power: " + powers);
 									pws.add(power);
 								}
-								pShots.remove(i);
 								if((en1.type == 1 || en1.type == 4) && en1.hits >= 1){
-									//System.out.println("Type 1 destroyed");
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
 									score += 20;
 								}
 								if(en1.type == 0 && en1.hits >= 2){
-									//System.out.println("Type 2 destroyed");
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
@@ -598,25 +687,19 @@ public class spaceGame extends BasicGame {
 								}
 							}
 							else if(collVector.getY() != 0){
-								System.out.println("Collision");
 								en1.hits += 1;
 								if(dropPowerUp()){
-									if(dropPowerUp()){
-										int powers = selectPowerUp();
-										power = new PowerUp(en1.getX(), en1.getY(), 0f, 0.2f, powers);
-										pws.add(power);
+									int powers = selectPowerUp();
+									power = new PowerUp(en1.getX(), en1.getY(), 0f, 0.2f, powers);
+									pws.add(power);
 									}
-								}
-								pShots.remove(i);
 								if((en1.type == 1 || en1.type == 4) && en1.hits >= 1){
-									System.out.println("Type 1 destroyed");
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
 									score += 20;
 								}
 								if(en1.type == 0 && en1.hits >= 2){
-									System.out.println("Type 2 destroyed");
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
@@ -634,77 +717,100 @@ public class spaceGame extends BasicGame {
 									shipsDestroyed += 1;
 									score += 100;
 								}
+								if((en1.type == 6  || en1.type == 7) && en1.hits >= 1){
+									explosions.add(new Bang(en1.getX(), en1.getY()));
+									Enemies1.remove(j);
+									shipsDestroyed += 1;
+									score += 50;
+								}
 							}
+							pShots.remove(i);
 						}
 					}
-					if(pShot.collides(boss) != null && boss.isAlive){
-						Collision collision = pShot.collides(boss);
-						Vector collVector = collision.getMinPenetration();
-						if(collVector.getX() != 0){
-							pShots.remove(i);
-							boss.hits += 1;
-							if(boss.hits >= 15)
-								killBoss();
-						}
-						if(collVector.getY() != 0){
-							pShots.remove(i);
-							boss.hits += 1;
-							if(boss.hits >= 15)
-								killBoss();
+					for(int j = 0; j < boss1.size(); j++){
+						boss = boss1.get(j);
+						if(pShot.collides(boss) != null && boss.isAlive){
+							Collision collision = pShot.collides(boss);
+							Vector collVector = collision.getMinPenetration();
+							if(collVector.getX() != 0){
+								pShots.remove(i);
+								boss.hits += 1;
+								if(boss.hits >= 15)
+									killBoss();
+							}
+							if(collVector.getY() != 0){
+								pShots.remove(i);
+								boss.hits += 1;
+								if(boss.hits >= 15)
+									killBoss();
+							}
 						}
 					}
 				}
 
-			//timeEnd1 = System.nanoTime();
-			//System.out.println("Collision checks: " + (timeEnd1 - timeStart1));
-			
 			//Level setups
 			if(level == 1){
-				if(shipsCreated < 1)
+				if(gameTimer == 0){
 					System.out.println("Level 1 Start");
+					shipsCreated = 0;
+					shipsDestroyed = 0;
+				}
 				//Add enemies
-				if((gameTimer % 75 == 0 && gameTimer <= 225) || (gameTimer % 75 == 0 && (gameTimer >= 525 && gameTimer <= 750))){
+				if((gameTimer % 75 == 0 && (gameTimer <= 225 || (gameTimer >= 525 && gameTimer <= 750) ||
+						(gameTimer >= 2000 && gameTimer <= 2100)))){
 					en1 = new simpleEnemy(4 * ScreenWidth / 5, 0, -0.05f, 0.1f, 4);
 					Enemies1.add(en1);
-					System.out.println("Left Created");
 					shipsCreated += 1;
 				}
 			
 				//Add enemies
-				if((gameTimer % 75 == 0 && (gameTimer > 225 && gameTimer <= 450)) || (gameTimer % 75 == 0 && (gameTimer >= 825 && gameTimer <= 1050))){
+				if((gameTimer % 75 == 0 && (gameTimer > 225 && gameTimer <= 450)) || 
+						(gameTimer % 75 == 0 && (gameTimer >= 825 && gameTimer <= 1050) ||
+						(gameTimer % 50 == 0 && (gameTimer >= 2050 && gameTimer <= 2150)))){
 					en1 = new simpleEnemy(ScreenWidth / 5, 0, 0.05f, 0.1f, 1);
 					Enemies1.add(en1);
-					System.out.println("Right Created");
 					shipsCreated += 1;
 				}
 			
-				//Add more enemies
+				//Add slow, tough enemies
 				if((gameTimer % 50 == 0 && (gameTimer >= 950 && gameTimer <= 1100))){
 					en1 = new simpleEnemy(2 * ScreenWidth / 3, 0, -0.05f, 0.2f, 0);
 					Enemies1.add(en1);
 					shipsCreated += 1;
 				}
 			
-				//Add more enemies
+				//Add slow, tough enemies
 				if((gameTimer % 50 == 0 && (gameTimer >= 1200 && gameTimer <= 1350))){
 					en1 = new simpleEnemy(ScreenWidth / 3, 0, 0.05f, 0.2f, 0);
 					Enemies1.add(en1);
 					shipsCreated += 1;
 				}
-				if(gameTimer >= 1600 && Enemies1.size() == 0){
+				
+				//Add looping and shooting enemies
+				if((gameTimer % 50 == 0) && (gameTimer >= 1800 && gameTimer <= 1950)){
+					en1 = new simpleEnemy(ScreenWidth, 200, -0.2f, 0f, 6);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				if((gameTimer % 50 == 0) && (gameTimer >= 1900 && gameTimer <= 2050)){
+					en1 = new simpleEnemy(0, 250, 0.2f, 0f, 7);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+
+				if(gameTimer >= 2200 && Enemies1.size() == 0){
 					level = 2;
-					for(int i = 0; i < pShots.size(); i++){
-						pShots.remove(i);
-					}
+					pShots.clear();
+					eShots.clear();
+					pws.clear();
 					gameTimer = -50;
 					gameState = TRANSITION;
 				}
 			}
 			if(level == 2){
-				if(gameTimer < 0){
+				if(gameTimer == 0){
 					shipsDestroyed = 0;
 					shipsCreated = 0;
-					System.out.println("Level 2 Start");
 				}
 				//Add shooting enemies
 				if((gameTimer % 75 == 0 && (gameTimer >= 225 && gameTimer <= 450))){
@@ -731,24 +837,21 @@ public class spaceGame extends BasicGame {
 				
 				//Add boss to screen
 				if(gameTimer == 800){
-					boss.setVelocity(new Vector(0.1f, 0f));
-					boss.isAlive = true;
-					boss.canShoot = true;
+					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 0);
+					boss1.add(boss);
 				}
-				if(gameTimer >= 1200 && boss.isAlive == false){
+				if(gameTimer >= 1200 && boss1.size() == 0){
 					level = 3;
-					for(int i = 0; i < pShots.size(); i++){
-						pShots.remove(i);
-					}
-					for(int i = 0; i < eShots.size(); i ++){
-						eShots.remove(i);
-					}
+					pShots.clear();
+					eShots.clear();
+					pws.clear();
+					gameTimer = -50;
 					gameState = TRANSITION;
 				}
 			}
 			
 			if(level == 3){
-				if(gameTimer < 0){
+				if(gameTimer == 0){
 					shipsCreated = 0;
 					shipsDestroyed = 0;
 				}
@@ -756,61 +859,141 @@ public class spaceGame extends BasicGame {
 				if(gameTimer % 50 == 0 && gameTimer < 200){
 					en1 = new simpleEnemy(ScreenWidth / 4, 0, 0.1f, 0.15f, 1);
 					Enemies1.add(en1);
+					shipsCreated += 1;
 				}
 				if(gameTimer % 75 == 0 && gameTimer < 225){
 					en1 = new simpleEnemy(3 * ScreenWidth / 4, 0, -0.1f, 0.15f, 4);
 					Enemies1.add(en1);
+					shipsCreated += 1;
 				}
 				
 				//Add shooting enemies
 				if(gameTimer % 50 == 0 && gameTimer >=100 && gameTimer <= 200){
 					en1 = new simpleEnemy(2 * ScreenWidth / 3, 0, -0.15f, 0.2f, 2);
 					Enemies1.add(en1);
+					shipsCreated += 1;
 				}
 				if(gameTimer % 50 == 0 && gameTimer >= 200 && gameTimer <= 300){
 					en1 = new simpleEnemy(ScreenWidth / 3, 0, 0.15f, 0.2f, 2);
 					Enemies1.add(en1);
+					shipsCreated += 1;
 				}
 				
 				//Add big slow enemies
 				if(gameTimer % 50 == 0 && gameTimer >= 200 && gameTimer <= 400){
 					en1 = new simpleEnemy(ScreenWidth / 4, 0, 0.05f, 0.1f, 0);
 					Enemies1.add(en1);
+					shipsCreated += 1;
 				}
 				if(gameTimer % 50 == 0 && gameTimer >= 225 && gameTimer <= 325){
 					en1 = new simpleEnemy(3 * ScreenWidth / 4, 0, -0.05f, 0.1f, 0);
 					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				//Add looping and shooting enemies
+				if((gameTimer % 50 == 0) && (gameTimer >= 600 && gameTimer <= 750)){
+					en1 = new simpleEnemy(ScreenWidth, 200, -0.2f, 0f, 6);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				if((gameTimer % 50 == 0) && (gameTimer >= 700 && gameTimer <= 850)){
+					en1 = new simpleEnemy(0, 250, 0.2f, 0f, 7);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				if(gameTimer >= 1000 && Enemies1.size() == 0){
+					level = 4;
+					pShots.clear();
+					eShots.clear();
+					pws.clear();
+					gameState = TRANSITION;
 				}
 			}
 			if(level == 4){
-				if(gameTimer < 0){
+				if(gameTimer == 0){
 					shipsCreated = 0;
 					shipsDestroyed = 0;
 				}
-				if(gameTimer % 50 == 0 && gameTimer >=0 && gameTimer <= 200){
-					
+				if(gameTimer % 25 == 0 && gameTimer >=0 && gameTimer <= 200){
+					if(gameTimer % 50 == 0)
+						en1 = new simpleEnemy(ScreenWidth / 3, 0, 0f, 0.1f, 5);
+					else
+						en1 = new simpleEnemy(2 * ScreenWidth / 3, 0, 0f, 0.1f, 5);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				//Add looping and shooting enemies
+				if((gameTimer % 50 == 0) && ((gameTimer >= 50 && gameTimer <= 150) ||
+						(gameTimer >= 900 && gameTimer <= 1000))){
+					en1 = new simpleEnemy(ScreenWidth, 200, -0.2f, 0f, 6);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				if((gameTimer % 50 == 0) && ((gameTimer >= 100 && gameTimer <= 250) ||
+						(gameTimer >= 900 && gameTimer <= 1000))){
+					en1 = new simpleEnemy(0, 250, 0.2f, 0f, 7);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				if(gameTimer % 75 == 0 && (gameTimer >= 400 && gameTimer <= 600)){
+					en1 = new simpleEnemy(ScreenWidth / 4, 0, 0.1f, 0.15f, 1);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				if(gameTimer % 75 == 0 && (gameTimer >= 450 && gameTimer <= 650)){
+					en1 = new simpleEnemy(3 * ScreenWidth / 4, 0, -0.1f, 0.15f, 4);
+					Enemies1.add(en1);
+					shipsCreated += 1;
+				}
+				if(gameTimer == 1400){
+					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 1);
+					boss1.add(boss);
+				}
+				if(gameTimer > 1410 && boss1.size() == 0){
+					gameWon();
 				}
 			}
 			
 			//Add shots from boss
-			if(boss.canShoot){
-				boss.shotDelay = 0;
-				boss.canShoot = false;
-				eShot = new enemyLaser(boss.getX() - 53, boss.getY() + 85, new Vector(0f, 0.3f));
-				eShots.add(eShot);
-				eShot = new enemyLaser(boss.getX() + 53, boss.getY() + 85, new Vector(0f, 0.3f));
-				eShots.add(eShot);
+			for(int i = 0; i < boss1.size(); i++){
+				boss = boss1.get(i);
+				if(boss.canShoot && boss.type == 0){
+					boss.shotDelay = 0;
+					boss.canShoot = false;
+					eShot = new enemyLaser(boss.getX() - 53, boss.getY() + 85, new Vector(0f, 0.3f));
+					eShots.add(eShot);
+					eShot = new enemyLaser(boss.getX() + 53, boss.getY() + 85, new Vector(0f, 0.3f));
+					eShots.add(eShot);
+				}
+				if(boss.canShoot && boss.type == 1){
+					boss.shotDelay = 0;
+					boss.canShoot = false;
+					eShot = new enemyLaser(boss.getX() - 35, boss.getY() + 90, new Vector(0f, 0.3f));
+					eShots.add(eShot);
+					eShot = new enemyLaser(boss.getX() + 35, boss.getY() + 90, new Vector(0f, 0.3f));
+					eShots.add(eShot);
+					eShot = new enemyLaser(boss.getX() + 130, boss.getY(), boss.shotVector(boss.getX(),
+							boss.getY(), playerShip.getX(), playerShip.getY()));
+					ResourceManager.getSound("resource/laser_gun_2.wav").play();
+					eShots.add(eShot);
+					eShot = new enemyLaser(boss.getX() - 130, boss.getY(), boss.shotVector(boss.getX(),
+							boss.getY(), playerShip.getX(), playerShip.getY()));
+					ResourceManager.getSound("resource/laser_gun_2.wav").play();
+					eShots.add(eShot);
+				}
 			}
 			
 			//Update boss
-			if(boss.getCoarseGrainedMaxX() > ScreenWidth){
-				boss.setVelocity(new Vector(-0.1f, 0f));
-			}
-			if(boss.getCoarseGrainedMinX() < 0){
-				boss.setVelocity(new Vector(0.1f, 0f));
-			}
-			boss.update(delta);
-			
+			for(int i = 0; i < boss1.size(); i++){
+				boss = boss1.get(i);
+				if(boss.getCoarseGrainedMaxX() > ScreenWidth){
+					boss.setVelocity(new Vector(-0.1f, 0f));
+				}
+				if(boss.getCoarseGrainedMinX() < 0){
+					boss.setVelocity(new Vector(0.1f, 0f));
+				}
+				boss.update(delta);
+			}			
 			//Update where enemy lasers are
 			for(int i = 0; i < eShots.size(); i++){
 				eShot = eShots.get(i);
@@ -840,6 +1023,7 @@ public class spaceGame extends BasicGame {
 				pShield.update(delta);
 				if(pShield.timeOn >= 2000){
 					pShields.remove(i);
+					ResourceManager.getSound("resource/magnetic_field_1.wav").stop();
 					playerShip.shieldOn = false;
 				}
 			}
@@ -847,7 +1031,7 @@ public class spaceGame extends BasicGame {
 			//Update enemy ship movements
 			for(int i = 0; i < Enemies1.size(); i++){
 				en1 = Enemies1.get(i);
-				if(en1.moveTimer >= 2500 && en1.canChangeV == true){
+				if(en1.moveTimer >= 2500 && en1.canChangeV == true && (en1.type == 1 || en1.type == 4)){
 					en1.canChangeV = false;
 					en1.setVelocity(en1.velocity.add(new Vector(-0.15f, 0.1f)));
 				}
@@ -856,21 +1040,30 @@ public class spaceGame extends BasicGame {
 					en1.canShoot = false;
 					eShot = new enemyLaser(en1.getX(), en1.getY(), en1.shotVector(en1.getX(),
 							en1.getY(), playerShip.getX(), playerShip.getY()));
+					ResourceManager.getSound("resource/laser_gun_2.wav").play();
 					eShots.add(eShot);
 				}
 				if(en1.type == 5){
-					if(en1.chaseTimer > 150 && playerShip.getY() - en1.getY() > -10){
+					if(en1.chaseTimer > 150 && playerShip.getY() - en1.getY() > -10 && playerShip.isAlive){
 						en1.chaseTimer = 0;
 						en1.setVelocity(en1.chase(en1.getX(), en1.getY(), playerShip.getX(),
 								playerShip.getY(), en1.face));
 					}
 				}
-				en1.update(delta);
 				if(en1.getCoarseGrainedMinY() >= ScreenHeight
-						|| en1.getCoarseGrainedMaxX() >= ScreenWidth
-						|| en1.getCoarseGrainedMinX() <= 0){
+						|| en1.getCoarseGrainedMinX() >= ScreenWidth
+						|| en1.getCoarseGrainedMaxX() <= 0){
 					Enemies1.remove(i);
-				};
+				}
+				if(en1.face < 6 && en1.type == 6 && en1.moveTimer >= 3000){
+					en1.shiftR(en1.face);
+					en1.canChangeV = true;
+				}
+				if(en1.face < 6 && en1.type == 7 && en1.moveTimer >= 3000){
+					en1.shiftL(en1.face);
+					en1.canChangeV = true;
+				}
+				en1.update(delta);
 			}
 			//Remove shots off screen
 			for(int i = 0; i < pShots.size(); i++){
@@ -884,13 +1077,23 @@ public class spaceGame extends BasicGame {
 				if(eShot.getCoarseGrainedMinY() >= ScreenHeight)
 					eShots.remove(i);
 			}
-
-			//Increment game timer 
-			gameTimer += 1;
+			//Update powerup timers
 			if(playerShip.powerUp)
 				playerShip.powerUpTimer += 1;
 			if(playerShip.threeWay)
 				playerShip.threeWayTimer += 1;
+			
+			if(!playerShip.canHit){
+				playerShip.canHitTimer -= 1;
+				if(playerShip.canHitTimer <= 0)
+					playerShip.canHit = true;
+			}
+
+			System.out.println("canHitTimer: " + playerShip.canHitTimer);
+			System.out.println("isAlive: " + playerShip.isAlive);
+			//Increment game timer 
+			gameTimer += 1;
+
 		}
 
 		// check if there are any finished explosions, if so remove them
@@ -899,18 +1102,19 @@ public class spaceGame extends BasicGame {
 				i.remove();
 			}
 		}
-
-		if (gameState == PLAYING && lives == 0) {
-			gameOver();
+		for(Iterator<Booms> i = booms.iterator(); i.hasNext();){
+			if(!i.next().isActive()){
+				i.remove();
+			}
 		}
 	}
 }
 
 	public static void main(String[] args) throws Exception{
 		AppGameContainer app;
-		//Class.forName("org.sqlite.JDBC");
-		//db_conn = DriverManager.getConnection("jdbc:sqlite:Scores.db");
-		//stmt = db_conn.createStatement();
+		Class.forName("org.sqlite.JDBC");
+		db_conn = DriverManager.getConnection("jdbc:sqlite:Scores.db");
+		stmt = db_conn.createStatement();
 		try {
 			app = new AppGameContainer(new spaceGame("2942", 800, 700));
 			app.setDisplayMode(800, 700, false);
@@ -928,27 +1132,15 @@ public class spaceGame extends BasicGame {
 		db_conn.close();
 	}
 	
-	public static void addScore(int score){
-		try{
-			stmt.executeUpdate("INSERT INTO Scores VALUES('" + score + "')");
-		} catch(SQLException e){
-			e.printStackTrace();
-		}
+	public static void addScore(int score) throws SQLException{
+		stmt.executeUpdate("INSERT INTO Scores VALUES('" + score + "')");
 	}
 	
 	public int getHighScore() throws SQLException{
-			rs = stmt.executeQuery("SELECT * FROM Scores order BY DESC");
-			return (Integer.parseInt(rs.getString("score")));
+		rs = stmt.executeQuery("SELECT * FROM Scores order by score DESC");
+		return (Integer.parseInt(rs.getString("score")));
 	}
 
-
-	/**
-	 * The Ball class is an Entity that has a velocity (since it's moving). When
-	 * the Ball bounces off a surface, it temporarily displays a image with
-	 * cracks for a nice visual effect.
-	 * 
-	 */
-	
 	class spaceShip extends Entity {
 
 		private Vector velocity;
@@ -962,11 +1154,13 @@ public class spaceGame extends BasicGame {
 		public boolean powerUp;
 		public int threeWayTimer;
 		public boolean threeWay;
+		public boolean canHit;
+		public int canHitTimer;
 
 		public spaceShip(final float x, final float y, final float vx, final float vy) {
 			super(x, y);
-			addImageWithBoundingBox(ResourceManager
-					.getImage("resource/playerShip.png"));
+			addImageWithBoundingBox(ResourceManager.getImage("resource/playerShip.png"));
+			addShape(new ConvexPolygon(90, 30), new Vector(0f, 15f));
 			velocity = new Vector(vx, vy);
 			shotDelay = 0;
 			canShoot = true;
@@ -978,6 +1172,8 @@ public class spaceGame extends BasicGame {
 			powerUpTimer = 0;
 			threeWay = false;
 			threeWayTimer = 0;
+			canHit = true;
+			canHitTimer = -1;
 		}
 
 		public void setVelocity(final Vector v) {
@@ -1018,8 +1214,19 @@ public class spaceGame extends BasicGame {
 		public int shotDelay;
 		public boolean canShoot;
 		private int chaseTimer;
+		public int rotateTimer;
 		private String images[] = new String[]{"resource/enemy.png","resource/enemy45.png",
 			"resource/enemy90.png", "resource/enemy-45.png", "resource/enemy-90.png"};
+		private String images1[] = new String[]{"resource/enemy5.png", "resource/enemy5r1.png",
+				"resource/enemy5r2.png", "resource/enemy5r3.png", "resource/enemy5r4.png",
+				"resource/enemy5r5.png", "resource/enemy5r6.png"};
+		private String images2[] = new String[]{"resource/enemy5r4.png", "resource/enemy5r3.png",
+				"resource/enemy5r2.png", "resource/enemy5r1.png", "resource/enemy5.png",
+				"resource/enemy5r8.png", "resource/enemy5r6.png"};
+		private Vector rotateR[] = new Vector[]{new Vector(-0.15f, -0.15f), new Vector(0f, -0.2f), 
+				new Vector(0.15f, -0.15f), new Vector(0.2f, 0f), new Vector(0.15f, 0.15f), new Vector(0f, 0.3f)};
+		private Vector rotateL[] = new Vector[]{new Vector(0.15f, -0.15f), new Vector(0f, -0.2f),
+				new Vector(-0.15f, -0.15f), new Vector(-0.2f, 0f), new Vector(-0.15f, 0.15f), new Vector(0f, 0.3f)	};
 		
 		public simpleEnemy(final float x, final float y, final float vx, final float vy, int flag){
 			super(x,y);
@@ -1029,6 +1236,7 @@ public class spaceGame extends BasicGame {
 			type = flag;
 			face = 0;
 			chaseTimer = 0;
+			rotateTimer = 0;
 			if(type == 0)
 				addImageWithBoundingBox(ResourceManager.getImage("resource/enemy2.png"));
 			if(type == 1){
@@ -1049,6 +1257,16 @@ public class spaceGame extends BasicGame {
 				canShoot = false;
 			if(type == 5){
 				addImageWithBoundingBox(ResourceManager.getImage(images[0]));
+			}
+			if(type == 6){
+				addImageWithBoundingBox(ResourceManager.getImage(images1[0]));
+				canChangeV = true;
+				canShoot = true;
+			}
+			if(type == 7){
+				addImageWithBoundingBox(ResourceManager.getImage(images1[4]));
+				canChangeV = true;
+				canShoot = true;
 			}
 			shotDelay = 0;
 		}
@@ -1115,21 +1333,42 @@ public class spaceGame extends BasicGame {
 			chaseVector = new Vector(newX, newY);
 			return chaseVector;
 		}
+		public void shiftR(int face){
+				en1.rotateTimer += 1;
+				if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
+					removeImage(ResourceManager.getImage(images1[en1.face]));
+					setVelocity(rotateR[en1.face]);
+					en1.face += 1;
+					addImageWithBoundingBox(ResourceManager.getImage(images1[en1.face]));
+					if(en1.face >= 6)
+						en1.canChangeV = false;
+				}
+		}public void shiftL(int face){
+			en1.rotateTimer += 1;
+			if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
+				removeImage(ResourceManager.getImage(images2[en1.face]));
+				setVelocity(rotateL[en1.face]);
+				en1.face += 1;
+				addImageWithBoundingBox(ResourceManager.getImage(images2[en1.face]));
+				if(en1.face >= 6)
+					en1.canChangeV = false;
+			}
+	}
 		public void update(final int delta) {
 			translate(velocity.scale(delta));
 			moveTimer += delta;
 			if(moveTimer >= 2500 && canChangeV == true && type == 1){
 				canChangeV = false;
-				System.out.println("Vector changed");
 				setVelocity(velocity.add(new Vector(0.15f, 0.1f)));
 			}
 			if(moveTimer >= 2500 && canChangeV == true && type == 4){
 				canChangeV = false;
-				System.out.println("Vector changed");
 				setVelocity(velocity.add(new Vector(-0.15f, 0.1f)));
 			}
 			shotDelay += 1;
 			if(shotDelay >= 150 && type == 3)
+				canShoot = true;
+			if(shotDelay >= 100 && (type == 7 || type == 6))
 				canShoot = true;
 			chaseTimer += delta;
 		}
@@ -1146,8 +1385,7 @@ public class spaceGame extends BasicGame {
 		public Bang(final float x, final float y) {
 			super(x, y);
 			explosion = new Animation(ResourceManager.getSpriteSheet(
-					"resource/explosion.png", 64, 64), 0, 0, 22, 0, true, 50,
-					true);
+					"resource/explosion.png", 64, 64), 0, 0, 22, 0, true, 50, true);
 			addAnimation(explosion);
 			explosion.setLooping(false);
 			ResourceManager.getSound("resource/explosion.wav").play();
@@ -1158,6 +1396,21 @@ public class spaceGame extends BasicGame {
 		}
 	}
 
+	class Booms extends Entity{
+		private Animation boom;
+		
+		public Booms(final float x, final float y){
+			super(x,y);
+			boom = new Animation(ResourceManager.getSpriteSheet("resource/boom2.png", 32, 30),
+					0, 0, 6, 0, true, 50, true);
+			addAnimation(boom);
+			boom.setLooping(false);
+		}
+		
+		public boolean isActive(){
+			return !boom.isStopped();
+		}
+	}
 	class Background extends Entity{
 		public Background(final float x, final float y){
 			super(x,y);
@@ -1252,26 +1505,42 @@ public class spaceGame extends BasicGame {
 		}
 	}
 	
-	class boss1 extends Entity{
+	class boss extends Entity{
 		private Vector speed;
 		public int shotDelay;
 		public boolean canShoot;
 		public int hits;
 		public boolean isAlive;
-		public boss1(final float x, final float y, final float vx, final float vy){
+		public int type;
+		public boss(final float x, final float y, final float vx, final float vy, final int flag){
 			super(x,y);
-			addImageWithBoundingBox(ResourceManager.getImage("resource/boss1.png"));
+			type = flag;
+			if(flag == 0)
+				addImageWithBoundingBox(ResourceManager.getImage("resource/boss1.png"));
+			if(flag == 1)
+				addImageWithBoundingBox(ResourceManager.getImage("resource/spaceship.pod.1.purple.png"));
 			speed = new Vector(vx, vy);
 			shotDelay = 0;
-			canShoot = false;
+			canShoot = true;
 			hits = 0;
-			isAlive = false;
+			isAlive = true;
 		}
 		
 		public void setVelocity(final Vector v){
 			speed = v;
 		}
-		
+		public Vector shotVector(final float x1, final float y1, final float x2, final float y2){
+			Vector shotV;
+			double distance;
+			float newX, newY;
+			distance = Math.sqrt(Math.pow((x2 - x1),2) + Math.pow((y2 - y1),2));
+			newX = x2 - x1;
+			newY = y2 - y1;
+			newX /= (3 * distance);
+			newY /= (3 * distance);
+			shotV = new Vector(newX, newY);
+			return shotV;
+		}
 		public void update(final int delta){
 			translate(speed.scale(delta));
 			shotDelay += delta;
