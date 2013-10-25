@@ -72,6 +72,7 @@ public class spaceGame extends BasicGame {
 	private int shipsCreated = 0;
 	private int shipsDestroyed = 0;
 	private int flash = 0;
+	public boolean newHigh;
 	public static Connection db_conn;
 	public static ResultSet rs;
 	public static Statement stmt;
@@ -140,11 +141,14 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/enemy5.png");
 		ResourceManager.loadImage("resource/enemy5r4.png");
 		ResourceManager.loadImage("resource/spaceship.pod.1.purple.png");
+		ResourceManager.loadImage("resource/win.png");
+		ResourceManager.loadImage("resource/highScore.png");
 		
 		ResourceManager.loadSound("resource/laser5.wav");
 		ResourceManager.loadSound("resource/explosion.wav");
 		ResourceManager.loadSound("resource/magnetic_field_1.wav");
-		ResourceManager.loadSound("resource/laser_gun_2.wav");
+		ResourceManager.loadSound("resource/laser2.wav");
+		ResourceManager.loadSound("resource/game song.wav");
 		
 		space = new Background(ScreenWidth / 2, ScreenHeight / 2);
 		playerShip = new spaceShip(ScreenWidth / 2, 650, 0, 0);
@@ -158,6 +162,7 @@ public class spaceGame extends BasicGame {
 		sIcons.add(sIcon);
 		sIcon = new shieldIcon(185, 685);
 		sIcons.add(sIcon);
+		newHigh = false;
 		startUp(container);
 	}
 
@@ -200,6 +205,8 @@ public class spaceGame extends BasicGame {
 		} catch(SQLException e){
 			e.printStackTrace();
 		}
+		if(score > highScore)
+			newHigh = true;
 		score = 0;
 		gameOverTimer = 4000;
 		gameTimer = 0;
@@ -209,6 +216,17 @@ public class spaceGame extends BasicGame {
 	}
 	
 	public void gameWon(){
+		score += (lives * 100);
+		if(score > highScore){
+			System.out.println("New high score!!!");
+			newHigh = true;
+		}
+		try{
+			addScore(score);
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+		level = 1;
 		gameState = WIN;
 	}
 
@@ -278,7 +296,7 @@ public class spaceGame extends BasicGame {
 			}
 			g.drawImage(ResourceManager.getImage("resource/title.png"), ScreenWidth / 3 + 50, ScreenHeight / 4);
 			if(flash >= 40){
-			g.drawString("Press Enter to Begin", ScreenWidth / 3 + 50, ScreenHeight / 3 + 90);
+			g.drawString("Press Enter to Begin\nPress X to exit", ScreenWidth / 3 + 50, ScreenHeight / 3 + 90);
 			}
 			if(flash >= 80)
 				flash = 0;
@@ -294,6 +312,8 @@ public class spaceGame extends BasicGame {
 			lives = 3;
 			score = 0;
 			playerShip.setPosition(ScreenWidth / 2, 650);
+			if(newHigh)
+				g.drawImage(ResourceManager.getImage("resource/highScore.png"), ScreenWidth / 3, ScreenHeight / 2);
 			for(Bang b : explosions)
 				b.render(g);
 			for(Booms b: booms)
@@ -327,6 +347,14 @@ public class spaceGame extends BasicGame {
 			break;
 		case WIN:
 			//Add stuff here soon
+			//Add stuff here soon
+			space.render(g);
+			g.drawString("Score: " + score, 10, 30);
+			g.drawString("High Score: " + highScore, 10, 50);
+			if(newHigh)
+				g.drawImage(ResourceManager.getImage("resource/highScore.png"), ScreenWidth / 4, ScreenHeight / 2);
+			g.drawImage(ResourceManager.getImage("resource/win.png"), 80, ScreenHeight / 2 - 50);
+			g.drawString("Press N to play again\nPress X to exit", ScreenWidth / 3, 2 * ScreenHeight / 3);
 		}
 	}
 
@@ -381,9 +409,8 @@ public class spaceGame extends BasicGame {
 			boss.setVelocity(new Vector(0f, 0f));
 			boss.canShoot = false;
 			boss.isAlive = false;
-			//booms.add(new Booms(boss.getX(), boss.getY() + 100));
-			//booms.add(new Booms(boss.getX() + 100, boss.getY() +100));
-			//booms.add(new Booms(boss.getX() - 100, boss.getY() + 100));
+		
+			score += 500;
 			explosions.add(new Bang(boss.getX(), boss.getY() + 100));
 			explosions.add(new Bang(boss.getX() - 100, boss.getY() + 100));
 			explosions.add(new Bang(boss.getX() + 100, boss.getY() + 100));
@@ -412,7 +439,12 @@ public class spaceGame extends BasicGame {
 
 			if (gameState == START_UP) {
 				if (input.isKeyDown(Input.KEY_ENTER)){
+					level = 1;
+					newHigh = false;
 					newGame(container);
+				}
+				if(input.isKeyDown(Input.KEY_X)){
+					gameState = EXIT;
 				}
 			} else if(gameState == TRANSITION){
 				gameTimer = -50;
@@ -442,7 +474,7 @@ public class spaceGame extends BasicGame {
 				}
 				playerShip.update(delta);
 			} else if(gameState == WIN){
-				if(input.isKeyDown(Input.KEY_SPACE)){
+				if(input.isKeyDown(Input.KEY_N)){
 					startUp(container);
 				}
 				if(input.isKeyDown(Input.KEY_X)){
@@ -503,9 +535,7 @@ public class spaceGame extends BasicGame {
 						playerShip.canShield -= 1;
 					}
 				}
-				//System.out.println("Lives: " + lives);
 				if (gameState == PLAYING && lives == 0) {
-					System.out.println("Game Over");
 					Enemies1.clear();
 					pShots.clear();
 					eShots.clear();
@@ -599,8 +629,10 @@ public class spaceGame extends BasicGame {
 							if(pShield.collides(eShot) != null){
 								Collision collision = pShield.collides(eShot);
 								Vector collVector = collision.getMinPenetration();
+								
 								if(collVector.getX() != 0 || collVector.getY() != 0){
 									eShots.remove(i);
+									ResourceManager.getSound("resource/ping6.wav").play();
 								}
 							}
 						}
@@ -611,9 +643,7 @@ public class spaceGame extends BasicGame {
 					for(int j = 0; j < Enemies1.size(); j++){
 						en1 = Enemies1.get(j);
 						if(pShot.collides(en1) != null){
-							Collision collision = pShot.collides(en1);
-							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0 || collVector.getY() != 0){
+							
 								en1.hits += 1;
 								if(dropPowerUp()){
 									int powers = selectPowerUp();
@@ -644,28 +674,30 @@ public class spaceGame extends BasicGame {
 									shipsDestroyed += 1;
 									score += 100;
 								}
+
 								if((en1.type == 6  || en1.type == 7) && en1.hits >= 1){
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(j);
 									shipsDestroyed += 1;
 									score += 50;
 								}
-							}
+								if(en1.type == 8 && en1.hits >= 1){
+									explosions.add(new Bang(en1.getX(), en1.getY()));
+									Enemies1.remove(j);
+									score += 250;
+								}
 							pShots.remove(i);
 						}
 					}
 					for(int j = 0; j < boss1.size(); j++){
 						boss = boss1.get(j);
 						if(pShot.collides(boss) != null && boss.isAlive){
-							Collision collision = pShot.collides(boss);
-							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0 || collVector.getY() != 0){
+							
 								booms.add(new Booms(pShot.getX(), pShot.getY() - 5));
 								pShots.remove(i);
 								boss.hits += 1;
 								if(boss.hits >= 15)
-									killBoss();
-							}
+									killBoss();	
 						}
 					}
 				}
@@ -673,9 +705,10 @@ public class spaceGame extends BasicGame {
 			//Level setups
 			if(level == 1){
 				if(gameTimer == 0){
-					System.out.println("Level 1 Start");
+					//System.out.println("Level 1 Start");
 					shipsCreated = 0;
 					shipsDestroyed = 0;
+					ResourceManager.getSound("resource/game song.wav").play();
 				}
 				//Add enemies
 				if((gameTimer % 75 == 0 && (gameTimer <= 225 || (gameTimer >= 525 && gameTimer <= 750) ||
@@ -720,8 +753,18 @@ public class spaceGame extends BasicGame {
 					shipsCreated += 1;
 				}
 
+				//Add bonus whale
+				if(gameTimer % 100 == 0){
+					random = new Random();
+					if(random.nextFloat() <= 0.05){
+						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						Enemies1.add(en1);
+					}
+				}
+				if(!ResourceManager.getSound("resource/game song.wav").playing())
+					ResourceManager.getSound("resource/game song.wav").play();
 				if(gameTimer >= 2200 && Enemies1.size() == 0){
-					level = 2;
+					level += 1;
 					pShots.clear();
 					eShots.clear();
 					pws.clear();
@@ -756,14 +799,24 @@ public class spaceGame extends BasicGame {
 					Enemies1.add(en1);
 					shipsCreated += 1;
 				}
+				//Add bonus whale
+				if(gameTimer % 100 == 0){
+					random = new Random();
+					if(random.nextFloat() <= 0.05){
+						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						Enemies1.add(en1);
+					}
+				}
 				
 				//Add boss to screen
 				if(gameTimer == 800){
 					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 0);
 					boss1.add(boss);
 				}
+				if(!ResourceManager.getSound("resource/game song.wav").playing())
+					ResourceManager.getSound("resource/game song.wav").play();
 				if(gameTimer >= 1200 && boss1.size() == 0){
-					level = 3;
+					level += 1;
 					pShots.clear();
 					eShots.clear();
 					pws.clear();
@@ -823,11 +876,22 @@ public class spaceGame extends BasicGame {
 					Enemies1.add(en1);
 					shipsCreated += 1;
 				}
+				//Add bonus whale
+				if(gameTimer % 100 == 0){
+					random = new Random();
+					if(random.nextFloat() <= 0.05){
+						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						Enemies1.add(en1);
+					}
+				}
+				if(!ResourceManager.getSound("resource/game song.wav").playing())
+					ResourceManager.getSound("resource/game song.wav").play();
 				if(gameTimer >= 1000 && Enemies1.size() == 0){
-					level = 4;
+					level += 1;
 					pShots.clear();
 					eShots.clear();
 					pws.clear();
+					gameTimer = -50;
 					gameState = TRANSITION;
 				}
 			}
@@ -867,11 +931,24 @@ public class spaceGame extends BasicGame {
 					Enemies1.add(en1);
 					shipsCreated += 1;
 				}
+				//Add bonus whale
+				if(gameTimer % 100 == 0){
+					random = new Random();
+					if(random.nextFloat() <= 0.05){
+						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						Enemies1.add(en1);
+					}
+				}
 				if(gameTimer == 1400){
 					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 1);
 					boss1.add(boss);
 				}
+				if(!ResourceManager.getSound("resource/game song.wav").playing())
+					ResourceManager.getSound("resource/game song.wav").play();
 				if(gameTimer > 1410 && boss1.size() == 0){
+					System.out.println("Game is won");
+					eShots.clear();
+					pShots.clear();
 					gameWon();
 				}
 			}
@@ -896,11 +973,11 @@ public class spaceGame extends BasicGame {
 					eShots.add(eShot);
 					eShot = new enemyLaser(boss.getX() + 130, boss.getY(), boss.shotVector(boss.getX(),
 							boss.getY(), playerShip.getX(), playerShip.getY()));
-					ResourceManager.getSound("resource/laser_gun_2.wav").play();
+					ResourceManager.getSound("resource/laser2.wav").play();
 					eShots.add(eShot);
 					eShot = new enemyLaser(boss.getX() - 130, boss.getY(), boss.shotVector(boss.getX(),
 							boss.getY(), playerShip.getX(), playerShip.getY()));
-					ResourceManager.getSound("resource/laser_gun_2.wav").play();
+					ResourceManager.getSound("resource/laser2.wav").play();
 					eShots.add(eShot);
 				}
 			}
@@ -962,7 +1039,7 @@ public class spaceGame extends BasicGame {
 					en1.canShoot = false;
 					eShot = new enemyLaser(en1.getX(), en1.getY(), en1.shotVector(en1.getX(),
 							en1.getY(), playerShip.getX(), playerShip.getY()));
-					ResourceManager.getSound("resource/laser_gun_2.wav").play();
+					ResourceManager.getSound("resource/laser2.wav").play();
 					eShots.add(eShot);
 				}
 				if(en1.type == 5){
@@ -1196,6 +1273,12 @@ public class spaceGame extends BasicGame {
 				this.addShape(new ConvexPolygon(63f, 8f), new Vector(-3.5f, -25f));
 				canChangeV = true;
 				canShoot = true;
+			}
+			if(type == 8){
+				this.addImage(ResourceManager.getImage("resource/whale.png"));
+				this.addShape(new ConvexPolygon(106f, 40f), new Vector(30f, 13.5f));
+				this.addShape(new ConvexPolygon(62f, 11f), new Vector(-54f, 8f));
+				this.addShape(new ConvexPolygon(18f, 28f), new Vector(-60f, -8.5f));
 			}
 			shotDelay = 0;
 		}
