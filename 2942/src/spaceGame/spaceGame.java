@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
-import jig.Collision;
 import jig.ConvexPolygon;
 import jig.Entity;
 import jig.ResourceManager;
@@ -149,6 +148,11 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadSound("resource/magnetic_field_1.wav");
 		ResourceManager.loadSound("resource/laser2.wav");
 		ResourceManager.loadSound("resource/game song.wav");
+		ResourceManager.loadSound("resrouce/Space Atmosphere.wav");
+		ResourceManager.loadSound("resource/09 - Overdrive Sex Machine v0_5.wav");
+		ResourceManager.loadSound("resource/ouch.wav");
+		ResourceManager.loadSound("resource/blows.wav");
+		ResourceManager.loadSound("resource/powerup07.wav");
 		
 		space = new Background(ScreenWidth / 2, ScreenHeight / 2);
 		playerShip = new spaceShip(ScreenWidth / 2, 650, 0, 0);
@@ -176,7 +180,7 @@ public class spaceGame extends BasicGame {
 			e.printStackTrace();
 		}
 		gameState = START_UP;
-		container.setSoundOn(false);
+		container.setSoundOn(true);
 	}
 
 	/**
@@ -313,7 +317,7 @@ public class spaceGame extends BasicGame {
 			score = 0;
 			playerShip.setPosition(ScreenWidth / 2, 650);
 			if(newHigh)
-				g.drawImage(ResourceManager.getImage("resource/highScore.png"), ScreenWidth / 3, ScreenHeight / 2);
+				g.drawImage(ResourceManager.getImage("resource/highScore.png"), 80, ScreenHeight / 2);
 			for(Bang b : explosions)
 				b.render(g);
 			for(Booms b: booms)
@@ -346,8 +350,6 @@ public class spaceGame extends BasicGame {
 				b.render(g);
 			break;
 		case WIN:
-			//Add stuff here soon
-			//Add stuff here soon
 			space.render(g);
 			g.drawString("Score: " + score, 10, 30);
 			g.drawString("High Score: " + highScore, 10, 50);
@@ -394,6 +396,7 @@ public class spaceGame extends BasicGame {
 		playerShip.isAlive = false;
 		lives -= 1;
 		score -= 100;
+		ResourceManager.getSound("resource/ouch.wav").play();
 		playerShip.timeDead = 1000;
 		playerShip.canHit = false;
 		playerShip.canHitTimer = 150;
@@ -438,6 +441,12 @@ public class spaceGame extends BasicGame {
 			Input input = container.getInput();
 
 			if (gameState == START_UP) {
+				if(ResourceManager.getSound("resource/game song.wav").playing())
+					ResourceManager.getSound("resource/game song.wav").stop();
+				if(ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").playing())
+					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").stop();
+				if(!ResourceManager.getSound("resource/Space Atmosphere.wav").playing())
+					ResourceManager.getSound("resource/Space Atmosphere.wav").play();
 				if (input.isKeyDown(Input.KEY_ENTER)){
 					level = 1;
 					newHigh = false;
@@ -448,6 +457,10 @@ public class spaceGame extends BasicGame {
 				}
 			} else if(gameState == TRANSITION){
 				gameTimer = -50;
+				if(ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").playing())
+					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").stop();
+				if(!ResourceManager.getSound("resource/Space Atmosphere.wav").playing())
+					ResourceManager.getSound("resource/Space Atmosphere.wav").play();
 				for(int i = 0; i < pShots.size(); i++){
 					pShots.remove(i);
 				}
@@ -474,6 +487,10 @@ public class spaceGame extends BasicGame {
 				}
 				playerShip.update(delta);
 			} else if(gameState == WIN){
+				if(ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").playing())
+					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").stop();
+				if(!ResourceManager.getSound("resource/Space Atmosphere.wav").playing())
+					ResourceManager.getSound("resource/Space Atmosphere.wav").play();
 				if(input.isKeyDown(Input.KEY_N)){
 					startUp(container);
 				}
@@ -481,7 +498,6 @@ public class spaceGame extends BasicGame {
 					gameState = EXIT;
 				}
 			} else if(gameState == EXIT){
-
 				container.exit();
 			} else {
 				if(playerShip.isAlive){
@@ -558,10 +574,7 @@ public class spaceGame extends BasicGame {
 			
 				for(int i = 0; i < pws.size(); i ++){
 					power = pws.get(i);
-					if(playerShip.collides(power) != null){
-						Collision collision = playerShip.collides(power);
-						Vector collVector = collision.getMinPenetration();
-						if(collVector.getX() != 0 || collVector.getY() != 0){
+					if(playerShip.collides(power) != null && playerShip.isAlive){
 							if(playerShip.canShield <= 1 && power.type == 0){
 								playerShip.canShield += 1;
 							}
@@ -577,8 +590,8 @@ public class spaceGame extends BasicGame {
 								playerShip.threeWay = true;
 							}
 							pws.remove(i);
+							ResourceManager.getSound("resource/powerup07.wav").play();
 							score += 50;
-						}
 					}
 				}
 				
@@ -586,26 +599,19 @@ public class spaceGame extends BasicGame {
 					for(int i = 0; i < Enemies1.size(); i++){
 						en1 = Enemies1.get(i);
 						if(playerShip.collides(en1) != null){
-							Collision collision = playerShip.collides(en1);
-							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0 || collVector.getY() != 0){
-								explosions.add(new Bang(en1.getX(), en1.getY()));
-								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
-								Enemies1.remove(i);
-								killShip();
-							}
+							explosions.add(new Bang(en1.getX(), en1.getY()));
+							explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+							Enemies1.remove(i);
+							killShip();
 						}
 					}
 					for(int i = 0; i < eShots.size(); i++){
 						eShot = eShots.get(i);
 						if(playerShip.collides(eShot) != null){
-							Collision collision = playerShip.collides(eShot);
-							Vector collVector = collision.getMinPenetration();
-							if(collVector.getX() != 0 || collVector.getY() != 0){
-								explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
-								eShots.remove(i);
-								killShip();
-							}
+							explosions.add(new Bang(en1.getX(), en1.getY()));
+							explosions.add(new Bang(playerShip.getX(), playerShip.getY()));
+							eShots.remove(i);
+							killShip();
 						}
 					}
 				}
@@ -615,25 +621,16 @@ public class spaceGame extends BasicGame {
 						for(int i = 0; i < Enemies1.size(); i++){
 							en1 = Enemies1.get(i);
 							if(pShield.collides(en1) != null){
-								Collision collision = pShield.collides(en1);
-								Vector collVector = collision.getMinPenetration();
-								if(collVector.getX() != 0 || collVector.getY() != 0){
 									explosions.add(new Bang(en1.getX(), en1.getY()));
 									Enemies1.remove(i);
 									shipsDestroyed += 1;
-								}
 							}
 						}
 						for(int i = 0; i < eShots.size(); i++){
 							eShot = eShots.get(i);
 							if(pShield.collides(eShot) != null){
-								Collision collision = pShield.collides(eShot);
-								Vector collVector = collision.getMinPenetration();
-								
-								if(collVector.getX() != 0 || collVector.getY() != 0){
 									eShots.remove(i);
 									ResourceManager.getSound("resource/ping6.wav").play();
-								}
 							}
 						}
 					}
@@ -758,6 +755,7 @@ public class spaceGame extends BasicGame {
 					random = new Random();
 					if(random.nextFloat() <= 0.05){
 						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						ResourceManager.getSound("resource/blows.wav").play();
 						Enemies1.add(en1);
 					}
 				}
@@ -804,6 +802,7 @@ public class spaceGame extends BasicGame {
 					random = new Random();
 					if(random.nextFloat() <= 0.05){
 						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						ResourceManager.getSound("resource/blows.wav").play();
 						Enemies1.add(en1);
 					}
 				}
@@ -812,8 +811,10 @@ public class spaceGame extends BasicGame {
 				if(gameTimer == 800){
 					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 0);
 					boss1.add(boss);
+					ResourceManager.getSound("resource/game song.wav").stop();
+					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").play();
 				}
-				if(!ResourceManager.getSound("resource/game song.wav").playing())
+				if(!ResourceManager.getSound("resource/game song.wav").playing() && gameTimer < 800)
 					ResourceManager.getSound("resource/game song.wav").play();
 				if(gameTimer >= 1200 && boss1.size() == 0){
 					level += 1;
@@ -881,6 +882,7 @@ public class spaceGame extends BasicGame {
 					random = new Random();
 					if(random.nextFloat() <= 0.05){
 						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						ResourceManager.getSound("resource/blows.wav").play();
 						Enemies1.add(en1);
 					}
 				}
@@ -936,14 +938,17 @@ public class spaceGame extends BasicGame {
 					random = new Random();
 					if(random.nextFloat() <= 0.05){
 						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
+						ResourceManager.getSound("resource/blows.wav").play();
 						Enemies1.add(en1);
 					}
 				}
 				if(gameTimer == 1400){
+					ResourceManager.getSound("resource/game song.wav").stop();
+					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").play();
 					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 1);
 					boss1.add(boss);
 				}
-				if(!ResourceManager.getSound("resource/game song.wav").playing())
+				if(!ResourceManager.getSound("resource/game song.wav").playing() && gameTimer < 1400)
 					ResourceManager.getSound("resource/game song.wav").play();
 				if(gameTimer > 1410 && boss1.size() == 0){
 					System.out.println("Game is won");
