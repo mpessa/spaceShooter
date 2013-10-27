@@ -9,7 +9,8 @@
 [8] Create levels with transitions
 [9] Create additional levels and enemies
 [10] Reduce collision code
+[11] Cleanup and final touches
 
 ## Open Issues ##
 
-[11] Cleanup and final touches
+

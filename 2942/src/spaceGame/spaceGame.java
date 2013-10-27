@@ -77,7 +77,7 @@ public class spaceGame extends BasicGame {
 	public static Statement stmt;
 	
 	/**
-	 * Create the BounceGame frame, saving the width and height for later use.
+	 * Create the game frame, saving the width and height for later use.
 	 * 
 	 * @param title
 	 *            the window's title
@@ -219,12 +219,16 @@ public class spaceGame extends BasicGame {
 		gameState = GAME_OVER;
 	}
 	
+	/**
+	 * Puts the game in the game won state and updates scores
+	 */
 	public void gameWon(){
 		score += (lives * 100);
 		if(score > highScore){
 			System.out.println("New high score!!!");
 			newHigh = true;
 		}
+		highScore = score;
 		try{
 			addScore(score);
 		}catch(SQLException e){
@@ -317,11 +321,24 @@ public class spaceGame extends BasicGame {
 			score = 0;
 			playerShip.setPosition(ScreenWidth / 2, 650);
 			if(newHigh)
-				g.drawImage(ResourceManager.getImage("resource/highScore.png"), 80, ScreenHeight / 2);
+				g.drawImage(ResourceManager.getImage("resource/highScore.png"), ScreenWidth / 4, ScreenHeight / 2);
 			for(Bang b : explosions)
 				b.render(g);
 			for(Booms b: booms)
 				b.render(g);
+			break;
+		case PAUSE:
+			space.render(g);
+			playerShip.render(g);
+			if(flash < 40){
+				g.drawString("Watch out for the Space Whale", ScreenWidth / 2 - 30, ScreenHeight / 3);
+			}
+			if(flash >= 40){
+				g.drawString("Press Enter to Resume\nPress X to exit", ScreenWidth / 3 + 50, ScreenHeight / 3 + 90);
+				}
+				if(flash >= 80)
+					flash = 0;
+				flash++;
 			break;
 		case TRANSITION:
 			space.render(g);
@@ -351,6 +368,10 @@ public class spaceGame extends BasicGame {
 			break;
 		case WIN:
 			space.render(g);
+			for(Bang b : explosions)
+				b.render(g);
+			for(Booms b: booms)
+				b.render(g);
 			g.drawString("Score: " + score, 10, 30);
 			g.drawString("High Score: " + highScore, 10, 50);
 			if(newHigh)
@@ -455,18 +476,19 @@ public class spaceGame extends BasicGame {
 				if(input.isKeyDown(Input.KEY_X)){
 					gameState = EXIT;
 				}
+			} else if(gameState == PAUSE){
+				if(input.isKeyDown(Input.KEY_ENTER)){
+					gameState = PLAYING;
+				}
+				if(input.isKeyDown(Input.KEY_X)){
+					gameState = EXIT;
+				}
 			} else if(gameState == TRANSITION){
 				gameTimer = -50;
 				if(ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").playing())
 					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").stop();
 				if(!ResourceManager.getSound("resource/Space Atmosphere.wav").playing())
 					ResourceManager.getSound("resource/Space Atmosphere.wav").play();
-				for(int i = 0; i < pShots.size(); i++){
-					pShots.remove(i);
-				}
-				for(int i = 0; i < eShots.size(); i ++){
-					eShots.remove(i);
-				}
 				if(playerShip.getY() > 0)
 					playerShip.setVelocity(new Vector(0f, -0.3f));
 				if(playerShip.getCoarseGrainedMaxY() <= 0){
@@ -476,6 +498,8 @@ public class spaceGame extends BasicGame {
 					playerShip.powerUp = false;
 					playerShip.powerUpTimer = 0;
 					playerShip.shieldOn = false;
+					playerShip.isAlive = true;
+					playerShip.canHit = true;
 					if(input.isKeyDown(Input.KEY_ENTER)){
 						for(int i = 0; i < pShields.size(); i++){
 							pShield = pShields.get(i);
@@ -549,6 +573,9 @@ public class spaceGame extends BasicGame {
 						ResourceManager.getSound("resource/magnetic_field_1.wav").play();
 						playerShip.shieldOn = true;
 						playerShip.canShield -= 1;
+					}
+					if(input.isKeyDown(Input.KEY_P)){
+						gameState = PAUSE;
 					}
 				}
 				if (gameState == PLAYING && lives == 0) {
@@ -759,8 +786,10 @@ public class spaceGame extends BasicGame {
 						Enemies1.add(en1);
 					}
 				}
+				
 				if(!ResourceManager.getSound("resource/game song.wav").playing())
 					ResourceManager.getSound("resource/game song.wav").play();
+				
 				if(gameTimer >= 2200 && Enemies1.size() == 0){
 					level += 1;
 					pShots.clear();
@@ -814,8 +843,10 @@ public class spaceGame extends BasicGame {
 					ResourceManager.getSound("resource/game song.wav").stop();
 					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").play();
 				}
+				
 				if(!ResourceManager.getSound("resource/game song.wav").playing() && gameTimer < 800)
 					ResourceManager.getSound("resource/game song.wav").play();
+				
 				if(gameTimer >= 1200 && boss1.size() == 0){
 					level += 1;
 					pShots.clear();
@@ -886,8 +917,10 @@ public class spaceGame extends BasicGame {
 						Enemies1.add(en1);
 					}
 				}
+				
 				if(!ResourceManager.getSound("resource/game song.wav").playing())
 					ResourceManager.getSound("resource/game song.wav").play();
+				
 				if(gameTimer >= 1000 && Enemies1.size() == 0){
 					level += 1;
 					pShots.clear();
@@ -948,8 +981,10 @@ public class spaceGame extends BasicGame {
 					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 1);
 					boss1.add(boss);
 				}
+				
 				if(!ResourceManager.getSound("resource/game song.wav").playing() && gameTimer < 1400)
 					ResourceManager.getSound("resource/game song.wav").play();
+				
 				if(gameTimer > 1410 && boss1.size() == 0){
 					System.out.println("Game is won");
 					eShots.clear();
@@ -1035,8 +1070,12 @@ public class spaceGame extends BasicGame {
 			//Update enemy ship movements
 			for(int i = 0; i < Enemies1.size(); i++){
 				en1 = Enemies1.get(i);
-				if(en1.moveTimer >= 2500 && en1.canChangeV == true && (en1.type == 1 || en1.type == 4)){
+				if(en1.moveTimer >= 2500 && en1.canChangeV && (en1.type == 1 || en1.type == 4)){
 					en1.canChangeV = false;
+					if(en1.type == 1)
+						en1.rotate(25);
+					if(en1.type == 4)
+						en1.rotate(-25);
 					en1.setVelocity(en1.velocity.add(new Vector(-0.15f, 0.1f)));
 				}
 				if(en1.canShoot){
@@ -1060,12 +1099,12 @@ public class spaceGame extends BasicGame {
 						|| en1.getCoarseGrainedMaxX() <= 0){
 					Enemies1.remove(i);
 				}
-				if(en1.face < 6 && en1.type == 6 && en1.moveTimer >= 3000){
-					en1.shiftR(en1.face);
+				if(en1.type == 6 && en1.moveTimer >= 3000){
+					en1.shiftR();
 					en1.canChangeV = true;
 				}
-				if(en1.face < 6 && en1.type == 7 && en1.moveTimer >= 3000){
-					en1.shiftL(en1.face);
+				if(en1.type == 7 && en1.moveTimer >= 3000){
+					en1.shiftL();
 					en1.canChangeV = true;
 				}
 				en1.update(delta);
@@ -1226,7 +1265,6 @@ public class spaceGame extends BasicGame {
 			moveTimer = 1;
 			hits = 0;
 			type = flag;
-			face = 0;
 			chaseTimer = 0;
 			rotateTimer = 0;
 			rotateTimer = 0;
@@ -1324,14 +1362,14 @@ public class spaceGame extends BasicGame {
 		public void newRotation(final float x1, final float x2){
 			
 		}
-		public void shiftR(int face){
+		public void shiftR(){
 			en1.rotateTimer += 1;
 			if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
 				this.setVelocity(this.getVelocity().rotate(45));
 				this.rotate(45);
 			}
 		}
-		public void shiftL(int face){
+		public void shiftL(){
 			en1.rotateTimer += 1;
 			if(en1.rotateTimer % 15 == 0 && en1.canChangeV){
 				this.setVelocity(this.getVelocity().rotate(-45));
