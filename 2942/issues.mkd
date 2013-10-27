@@ -7,7 +7,10 @@
 [6] Add boss
 [7] Add additional enemy ships
 [8] Create levels with transitions
+[9] Create additional levels and enemies
+[10] Reduce collision code
+[11] Cleanup and final touches
 
 ## Open Issues ##
 
-[9] Create additional levels and enemies
+
