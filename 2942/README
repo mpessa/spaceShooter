@@ -1,0 +1,86 @@
+Author: Matthew Pessa
+Email: matthew.pessa@gmail.com
+
+Summary:
+I have completed a vertical-scrolling style shooting game set in space. The game includes sounds, background music, and graphics that are all open source. 
+
+Low bar items:
+2 playable levels - completed
+3 types of enemies - completed
+1 boss entity - completed
+1 powerup - completed
+At least 12 ships for each level - completed
+
+High bar items:
+4-5 levels - completed, 4 levels implemented
+6 types of enemies - completed
+2 types of enemies firing at the player - completed
+Kamikaze ship - completed
+4 powerups - completed
+High score tracker - completed
+Random ship entrance - not completed
+Ship roll - not completed
+
+Other items:
+Background music for regular gameplay, boss fights, and transition/beginning screens was included. Sound effects are included for ships firing, collisions, player death, powerup acquisition, and one enemy. A pause function was also implemented which also allows for the game to be exited.
+
+How to play:
+
+	Controls:
+	A - Move ship left
+	W - Move ship up
+	S - Move ship down
+	D - Move ship right
+	Space - Fire laser
+	Right Shift - Activate shield(if available)
+
+	P - Pause the game
+
+	Cheats:
+	None. Do it yourself.
+
+Citations:
+The names of some images and sounds were changed to easier keep track of them.
+
+Images:
+playerShip.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+lifeShip.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+enemy1.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+enemy2.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+enemy3.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+enemy.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+enemy5.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+enemy5r4.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+boss1.png - http://opengameart.org/content/space-ship-construction-kit by Skorpio
+win.png by Matthew Pessa
+highScore.png by Matthew Pessa
+title.png by Matthew Pessa
+level2.png by Matthew Pessa
+level3.png by Matthew Pessa
+spaceship.pod.1.purple.png - http://opengameart.org/content/spaceship-fighter-ipod1 by Skorpio
+laser.png - http://opengameart.org/content/lasers-and-beams by Rawdanitsu
+enemyLaser.png - http://opengameart.org/content/lasers-and-beams by Rawdanitsu
+space-1.png - http://opengameart.org/content/space-backgrounds-0 by fraang
+heart.png - http://opengameart.org/content/heart-collection by cougarmanification
+medal1.png - http://opengameart.org/content/medals-3 by Buch
+medal2.png - http://opengameart.org/content/medals-3 by Buch
+shield1.png - http://opengameart.org/content/circle by scenna
+Flameless.png - http://opengameart.org/content/shiny-orbs-64x64 by Mumu
+boom2.png - http://opengameart.org/content/explosion-set-1-m484-games by Master484
+icon_110.png - http://7soul1.deviantart.com/art/Extra-98-Free-RPG-Icons-389778011 by 7Soul1
+shieldIcon.png - http://7soul1.deviantart.com/art/Extra-98-Free-RPG-Icons-389778011 by 7Soul1
+shieldIcon2.png - http://7soul1.deviantart.com/art/Extra-98-Free-RPG-Icons-389778011 by 7Soul1
+explosion.png - http://opengameart.org/content/bomb-explosion-animation by qubodup
+
+Sounds:
+explosions.wav - http://www.freesound.org/people/DJ%20Chronos/sounds/123236/ by DJChronos
+blows.wav by Matthew Pessa
+ouch.wav by Scott Wallace
+powerup07.wav - http://opengameart.org/content/jbm-sound-effects-pack-1 by jobromedia
+09 - Overdrive Sex Machine v0_5.wav - http://opengameart.org/content/overdrive-sex-machine by FoxSynergy
+Space Atmosphere.wav - http://opengameart.org/content/space-atmospere by Alexandr Zhelanov
+Metallic Mistress.wav - http://opengameart.org/content/metallic-mistress by FoxySynergy
+laser2.wav - http://opengameart.org/content/vintage-scifi-sfx-vol-1 by Zander Noriega
+laser5.wav - http://opengameart.org/content/vintage-scifi-sfx-vol-1 by Zander Noriega
+magnetic_field_1.wav - http://opengameart.org/content/vintage-scifi-sfx-vol-1 by Zander Noriega
+ping6.wav - http://opengameart.org/content/31-pings-and-metal-filing-sounds by bart
