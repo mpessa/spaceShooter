@@ -136,7 +136,6 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadImage("resource/title.png");
 		ResourceManager.loadImage("resource/medal1.png");
 		ResourceManager.loadImage("resource/medal2.png");
-
 		ResourceManager.loadImage("resource/enemy5.png");
 		ResourceManager.loadImage("resource/enemy5r4.png");
 		ResourceManager.loadImage("resource/spaceship.pod.1.purple.png");
@@ -147,12 +146,13 @@ public class spaceGame extends BasicGame {
 		ResourceManager.loadSound("resource/explosion.wav");
 		ResourceManager.loadSound("resource/magnetic_field_1.wav");
 		ResourceManager.loadSound("resource/laser2.wav");
-		ResourceManager.loadSound("resource/game song.wav");
-		ResourceManager.loadSound("resrouce/Space Atmosphere.wav");
+		ResourceManager.loadSound("resource/Metallic Mistress.wav");
+		ResourceManager.loadSound("resource/Space Atmosphere.wav");
 		ResourceManager.loadSound("resource/09 - Overdrive Sex Machine v0_5.wav");
 		ResourceManager.loadSound("resource/ouch.wav");
 		ResourceManager.loadSound("resource/blows.wav");
 		ResourceManager.loadSound("resource/powerup07.wav");
+		ResourceManager.loadSound("resource/ping6.wav");
 		
 		space = new Background(ScreenWidth / 2, ScreenHeight / 2);
 		playerShip = new spaceShip(ScreenWidth / 2, 650, 0, 0);
@@ -216,6 +216,7 @@ public class spaceGame extends BasicGame {
 		gameTimer = 0;
 		level = 1;
 		playerShip.timeDead = -1;
+		playerShip.canHitTimer = -1;
 		gameState = GAME_OVER;
 	}
 	
@@ -225,10 +226,9 @@ public class spaceGame extends BasicGame {
 	public void gameWon(){
 		score += (lives * 100);
 		if(score > highScore){
-			System.out.println("New high score!!!");
+			//System.out.println("New high score!!!");
 			newHigh = true;
 		}
-		highScore = score;
 		try{
 			addScore(score);
 		}catch(SQLException e){
@@ -320,8 +320,11 @@ public class spaceGame extends BasicGame {
 			lives = 3;
 			score = 0;
 			playerShip.setPosition(ScreenWidth / 2, 650);
-			if(newHigh)
+			if(newHigh){
 				g.drawImage(ResourceManager.getImage("resource/highScore.png"), ScreenWidth / 4, ScreenHeight / 2);
+				g.drawString("Your Score: " + score, ScreenWidth / 3, 2 * ScreenHeight / 3);
+				g.drawString("Old high score: " + highScore, ScreenWidth / 3, 2 * ScreenHeight / 3 + 20);
+			}
 			for(Bang b : explosions)
 				b.render(g);
 			for(Booms b: booms)
@@ -462,8 +465,8 @@ public class spaceGame extends BasicGame {
 			Input input = container.getInput();
 
 			if (gameState == START_UP) {
-				if(ResourceManager.getSound("resource/game song.wav").playing())
-					ResourceManager.getSound("resource/game song.wav").stop();
+				if(ResourceManager.getSound("resource/Metallic Mistress.wav").playing())
+					ResourceManager.getSound("resource/Metallic Mistress.wav").stop();
 				if(ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").playing())
 					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").stop();
 				if(!ResourceManager.getSound("resource/Space Atmosphere.wav").playing())
@@ -732,7 +735,7 @@ public class spaceGame extends BasicGame {
 					//System.out.println("Level 1 Start");
 					shipsCreated = 0;
 					shipsDestroyed = 0;
-					ResourceManager.getSound("resource/game song.wav").play();
+					ResourceManager.getSound("resource/Metallic Mistress.wav").play();
 				}
 				//Add enemies
 				if((gameTimer % 75 == 0 && (gameTimer <= 225 || (gameTimer >= 525 && gameTimer <= 750) ||
@@ -787,8 +790,8 @@ public class spaceGame extends BasicGame {
 					}
 				}
 				
-				if(!ResourceManager.getSound("resource/game song.wav").playing())
-					ResourceManager.getSound("resource/game song.wav").play();
+				if(!ResourceManager.getSound("resource/Metallic Mistress.wav").playing())
+					ResourceManager.getSound("resource/Metallic Mistress.wav").play();
 				
 				if(gameTimer >= 2200 && Enemies1.size() == 0){
 					level += 1;
@@ -827,7 +830,7 @@ public class spaceGame extends BasicGame {
 					shipsCreated += 1;
 				}
 				//Add bonus whale
-				if(gameTimer % 100 == 0){
+				if(gameTimer % 100 == 0 && gameTimer < 800){
 					random = new Random();
 					if(random.nextFloat() <= 0.05){
 						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
@@ -840,12 +843,12 @@ public class spaceGame extends BasicGame {
 				if(gameTimer == 800){
 					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 0);
 					boss1.add(boss);
-					ResourceManager.getSound("resource/game song.wav").stop();
+					ResourceManager.getSound("resource/Metallic Mistress.wav").stop();
 					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").play();
 				}
 				
-				if(!ResourceManager.getSound("resource/game song.wav").playing() && gameTimer < 800)
-					ResourceManager.getSound("resource/game song.wav").play();
+				if(!ResourceManager.getSound("resource/Metallic Mistress.wav").playing() && gameTimer < 800)
+					ResourceManager.getSound("resource/Metallic Mistress.wav").play();
 				
 				if(gameTimer >= 1200 && boss1.size() == 0){
 					level += 1;
@@ -918,8 +921,8 @@ public class spaceGame extends BasicGame {
 					}
 				}
 				
-				if(!ResourceManager.getSound("resource/game song.wav").playing())
-					ResourceManager.getSound("resource/game song.wav").play();
+				if(!ResourceManager.getSound("resource/Metallic Mistress.wav").playing())
+					ResourceManager.getSound("resource/Metallic Mistress.wav").play();
 				
 				if(gameTimer >= 1000 && Enemies1.size() == 0){
 					level += 1;
@@ -967,7 +970,7 @@ public class spaceGame extends BasicGame {
 					shipsCreated += 1;
 				}
 				//Add bonus whale
-				if(gameTimer % 100 == 0){
+				if(gameTimer % 100 == 0 && gameTimer < 1400){
 					random = new Random();
 					if(random.nextFloat() <= 0.05){
 						en1 = new simpleEnemy(0, 100, 0.4f, 0f, 8);
@@ -976,14 +979,14 @@ public class spaceGame extends BasicGame {
 					}
 				}
 				if(gameTimer == 1400){
-					ResourceManager.getSound("resource/game song.wav").stop();
+					ResourceManager.getSound("resource/Metallic Mistress.wav").stop();
 					ResourceManager.getSound("resource/09 - Overdrive Sex Machine v0_5.wav").play();
 					boss = new boss(ScreenWidth / 2, 100, 0.1f, 0f, 1);
 					boss1.add(boss);
 				}
 				
-				if(!ResourceManager.getSound("resource/game song.wav").playing() && gameTimer < 1400)
-					ResourceManager.getSound("resource/game song.wav").play();
+				if(!ResourceManager.getSound("resource/Metallic Mistress.wav").playing() && gameTimer < 1400)
+					ResourceManager.getSound("resource/Metallic Mistress.wav").play();
 				
 				if(gameTimer > 1410 && boss1.size() == 0){
 					System.out.println("Game is won");
